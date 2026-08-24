@@ -34,11 +34,20 @@ type FileOptionProps = CommonProps & {
   onChange: (file: File | null) => void
 }
 
+type CheckboxOptionProps = CommonProps & {
+  kind: 'checkbox'
+  checked: boolean
+  /** Short line under the switch explaining what turning it on does. */
+  hint?: string
+  onChange: (checked: boolean) => void
+}
+
 export type EditorOptionProps =
   | TextOptionProps
   | SelectOptionProps
   | TextareaOptionProps
   | FileOptionProps
+  | CheckboxOptionProps
 
 export function EditorOption(props: EditorOptionProps) {
   const { label, compact } = props
@@ -68,6 +77,18 @@ export function EditorOption(props: EditorOptionProps) {
               <option key={choice}>{choice}</option>
             ))}
           </select>
+        )
+      case 'checkbox':
+        return (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={props.checked}
+              onChange={(e) => props.onChange(e.target.checked)}
+            />
+            <span className="check__box" aria-hidden="true" />
+            {props.hint && <span className="check__hint">{props.hint}</span>}
+          </label>
         )
       case 'file':
         return (

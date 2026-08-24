@@ -2,6 +2,7 @@ import { CardRenderer, type Faction } from './CardRenderer'
 import { TokenRenderer, type BaseSize } from './TokenRenderer'
 import type { CardData } from '../cardData'
 import type { CardImages } from '../cardImages'
+import type { FiringArcs } from '../firingArcs'
 
 export function Stage({
   faction,
@@ -9,6 +10,8 @@ export function Stage({
   zoom,
   cardData,
   images,
+  arcs,
+  setArcs,
 }: {
   faction: Faction
   baseSize: BaseSize
@@ -18,6 +21,8 @@ export function Stage({
   zoom: number
   cardData: CardData
   images: CardImages
+  arcs: FiringArcs
+  setArcs: (updater: (arcs: FiringArcs) => FiringArcs) => void
 }) {
   return (
     <div className="stage">
@@ -29,7 +34,7 @@ export function Stage({
 
         <div className="piece">
           <p className="cap">Base token</p>
-          <TokenRenderer baseSize={baseSize} />
+          <TokenRenderer baseSize={baseSize} cardData={cardData} arcs={arcs} setArcs={setArcs} />
         </div>
       </div>
     </div>

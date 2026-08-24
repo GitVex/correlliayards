@@ -4,11 +4,20 @@ import {
   hasSpeedClicks,
   parseDiceRows,
   type CardData,
-  type DiceLetter,
-  type DefenseTokenType,
   type UpgradeType,
 } from '../cardData'
 import type { CardImage, CardImages } from '../cardImages'
+import {
+  COMMAND_VALUE_ICON,
+  DEFENSE_TOKEN_CODE,
+  DEFENSE_TOKEN_ICON,
+  DICE_ICON,
+  HULL_ICON,
+  SHIELD_ICON,
+  SPEED_BG,
+  UPGRADE_ICON,
+  YAW_ICON,
+} from '../icons'
 
 // ---------------------------------------------------------------------------
 // The live card face — reads CardData and paints the real icons/text at the
@@ -16,62 +25,6 @@ import type { CardImage, CardImages } from '../cardImages'
 // there; this file only decides *what* goes in each box and *whether* it
 // shows at all.
 // ---------------------------------------------------------------------------
-
-const hullModules = import.meta.glob('../assets/icons/hull/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const HULL_ICON: Record<number, string> = {}
-for (const path in hullModules) {
-  const match = /hull_(\d+)\.png$/.exec(path)
-  if (match) HULL_ICON[Number(match[1])] = hullModules[path]
-}
-
-const shieldModules = import.meta.glob('../assets/icons/shield/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const SHIELD_ICON: Record<number, string> = {}
-for (const path in shieldModules) {
-  const match = /shield_(\d+)\.png$/.exec(path)
-  if (match) SHIELD_ICON[Number(match[1])] = shieldModules[path]
-}
-
-const commandModules = import.meta.glob('../assets/icons/commandvalues/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const COMMAND_VALUE_ICON: Record<number, string> = {}
-for (const path in commandModules) {
-  const match = /command_(\d+)\.png$/.exec(path)
-  if (match) COMMAND_VALUE_ICON[Number(match[1])] = commandModules[path]
-}
-
-const diceModules = import.meta.glob('../assets/icons/dice/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const DICE_ICON: Record<DiceLetter, string | undefined> = { R: undefined, U: undefined, B: undefined }
-for (const path in diceModules) {
-  if (path.includes('dice_red')) DICE_ICON.R = diceModules[path]
-  if (path.includes('dice_blue')) DICE_ICON.U = diceModules[path]
-  if (path.includes('dice_black')) DICE_ICON.B = diceModules[path]
-}
-
-const defenseTokenModules = import.meta.glob('../assets/icons/defensetokens/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const DEFENSE_TOKEN_CODE: Record<Exclude<DefenseTokenType, '—'>, string> = {
-  Brace: 'BR', Redirect: 'RE', Evade: 'EV', Scatter: 'SC', Contain: 'CO', Salvo: 'SA',
-}
-const DEFENSE_TOKEN_ICON: Record<string, string> = {}
-for (const path in defenseTokenModules) {
-  const match = /([A-Z]{2})\.png$/.exec(path)
-  if (match) DEFENSE_TOKEN_ICON[match[1]] = defenseTokenModules[path]
-}
-
-const upgradeModules = import.meta.glob('../assets/icons/upgrades/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const UPGRADE_ICON: Record<string, string> = {}
-for (const path in upgradeModules) {
-  const match = /([A-Z]{2})\.png$/.exec(path)
-  if (match) UPGRADE_ICON[match[1]] = upgradeModules[path]
-}
-
-const speedModules = import.meta.glob('../assets/icons/speed/*.png', { eager: true, import: 'default' }) as Record<string, string>
-const YAW_ICON: Record<number, string> = {}
-const SPEED_BG: Record<number, string> = {}
-for (const path in speedModules) {
-  const yawMatch = /yaw_(\d+)\.png$/.exec(path)
-  if (yawMatch) YAW_ICON[Number(yawMatch[1])] = speedModules[path]
-  const bgMatch = /speed_(\d+)\.png$/.exec(path)
-  if (bgMatch) SPEED_BG[Number(bgMatch[1])] = speedModules[path]
-}
 
 /** Row stagger/overlap unit for a dice cluster — roughly one die wide.
  *  Dice themselves are sized by .card-icon--dice in App.css. */
@@ -89,12 +42,22 @@ function boxStyle(key: string, fill: boolean): CSSProperties | null {
   }
 }
 
-function IconInBox({ slotKey, icon, alt }: { slotKey: string; icon: string | undefined; alt: string }) {
+function IconInBox({
+  slotKey,
+  icon,
+  alt,
+  className = 'card-icon',
+}: {
+  slotKey: string
+  icon: string | undefined
+  alt: string
+  className?: string
+}) {
   const style = boxStyle(slotKey, true)
   if (!style || !icon) return null
   return (
     <div className="card-icon-box" style={style}>
-      <img src={icon} alt={alt} className="card-icon" />
+      <img src={icon} alt={alt} className={className} />
     </div>
   )
 }
@@ -298,10 +261,10 @@ export function CardFace({ data, images }: { data: CardData; images: CardImages 
       <VerticalText slotKey="imageCredit" text={data.imageCredit} rotateLeft />
 
       <IconInBox slotKey="hull" icon={HULL_ICON[data.hull]} alt={`Hull ${data.hull}`} />
-      <IconInBox slotKey="shieldFront" icon={SHIELD_ICON[data.shieldFront]} alt={`Shield front ${data.shieldFront}`} />
-      <IconInBox slotKey="shieldLeft" icon={SHIELD_ICON[data.shieldLeft]} alt={`Shield left ${data.shieldLeft}`} />
-      <IconInBox slotKey="shieldRight" icon={SHIELD_ICON[data.shieldRight]} alt={`Shield right ${data.shieldRight}`} />
-      <IconInBox slotKey="shieldRear" icon={SHIELD_ICON[data.shieldRear]} alt={`Shield rear ${data.shieldRear}`} />
+      <IconInBox slotKey="shieldFront" icon={SHIELD_ICON[data.shieldFront]} alt={`Shield front ${data.shieldFront}`} className="card-icon card-icon--shield" />
+      <IconInBox slotKey="shieldLeft" icon={SHIELD_ICON[data.shieldLeft]} alt={`Shield left ${data.shieldLeft}`} className="card-icon card-icon--shield" />
+      <IconInBox slotKey="shieldRight" icon={SHIELD_ICON[data.shieldRight]} alt={`Shield right ${data.shieldRight}`} className="card-icon card-icon--shield" />
+      <IconInBox slotKey="shieldRear" icon={SHIELD_ICON[data.shieldRear]} alt={`Shield rear ${data.shieldRear}`} className="card-icon card-icon--shield" />
 
       <IconInBox slotKey="command" icon={COMMAND_VALUE_ICON[data.command]} alt={`Command ${data.command}`} />
       <IconInBox slotKey="squadron" icon={COMMAND_VALUE_ICON[data.squadron]} alt={`Squadron ${data.squadron}`} />

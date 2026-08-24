@@ -6,9 +6,10 @@ import type { BaseSize } from './TokenRenderer'
 import { DEFENSE_TOKEN_OPTIONS, UPGRADE_OPTIONS } from '../cardData'
 import type { CardData, DefenseTokenType, UpgradeType } from '../cardData'
 import type { CardImageKey, CardImages } from '../cardImages'
+import { withSplit, type FiringArcs } from '../firingArcs'
 
 type Tab = 'Fields' | 'JSON'
-type GroupKey = 'identity' | 'artwork' | 'defense' | 'armament' | 'command' | 'ability' | 'slots' | 'speed'
+type GroupKey = 'identity' | 'artwork' | 'arcs' | 'defense' | 'armament' | 'command' | 'ability' | 'slots' | 'speed'
 
 function Group({
   title,
@@ -79,6 +80,8 @@ export function Editor({
   setCardData,
   images,
   setImage,
+  arcs,
+  setArcs,
 }: {
   faction: Faction
   setFaction: (faction: Faction) => void
@@ -88,6 +91,8 @@ export function Editor({
   setCardData: (updater: (data: CardData) => CardData) => void
   images: CardImages
   setImage: (key: CardImageKey, file: File | null) => void
+  arcs: FiringArcs
+  setArcs: (updater: (arcs: FiringArcs) => FiringArcs) => void
 }) {
   const jsonTabId = useId()
 
@@ -96,6 +101,7 @@ export function Editor({
   const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
     identity: true,
     artwork: true,
+    arcs: true,
     defense: true,
     armament: true,
     command: true,
@@ -186,6 +192,25 @@ export function Editor({
             kind="file" label="Tiny icon"
             fileName={images.tinycon?.name}
             onChange={(file) => setImage('tinycon', file)}
+          />
+        </Group>
+
+        <Group
+          title="Firing arcs"
+          count={arcs.split ? '6 handles' : '5 handles'}
+          open={openGroups.arcs}
+          onToggle={() => toggleGroup('arcs')}
+        >
+          <p className="lbl" style={{ marginBottom: 8 }}>
+            Drag the handles on the base token. The four edge handles are mirrored
+            left to right; the pivot slides along the centre axis.
+          </p>
+          <EditorOption
+            kind="checkbox"
+            label="Split pivot"
+            checked={arcs.split}
+            hint="Two pivots: the front boundaries meet at the upper one, the rear at the lower."
+            onChange={(checked) => setArcs((prev) => withSplit(prev, checked))}
           />
         </Group>
 

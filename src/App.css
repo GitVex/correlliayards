@@ -158,6 +158,28 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   color: var(--faint); letter-spacing: .09em; margin-bottom: 3px;
 }
 
+/* checkbox rows */
+.check { display: flex; align-items: center; gap: 9px; min-width: 0; cursor: pointer; }
+.check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.check__box {
+  flex: 0 0 auto;
+  width: 15px; height: 15px; border-radius: 2px;
+  border: 1px solid var(--rule-hi); background: #0d1219;
+  transition: border-color .12s, background .12s;
+}
+.check:hover .check__box { border-color: var(--ion); }
+.check input:checked + .check__box {
+  background: var(--ion); border-color: var(--ion);
+  /* tick, drawn rather than shipped as an asset */
+  background-image: linear-gradient(45deg, transparent 44%, #0b0e13 44%, #0b0e13 56%, transparent 56%),
+                    linear-gradient(-45deg, transparent 44%, #0b0e13 44%, #0b0e13 56%, transparent 56%);
+  background-size: 9px 2px, 5px 2px;
+  background-position: 5px 8px, 2.5px 7px;
+  background-repeat: no-repeat;
+}
+.check input:focus-visible + .check__box { outline: 2px solid var(--ion); outline-offset: 2px; }
+.check__hint { font-size: 11px; color: var(--faint); line-height: 1.35; }
+
 /* image pickers in the artwork group */
 .filepick { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .filepick__btn {
@@ -255,11 +277,18 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   width: 69mm; height: 119mm; flex: 0 0 auto;
   display: flex; align-items: flex-end; justify-content: center;
 }
+/* Carries the drop shadow for the whole card, the card art included. The art
+   itself can't: the thumbnail paints behind it, and a shadow there would fall
+   across the artwork instead of the table. */
 .card-placeholder {
   position: absolute; inset: 0;
   background: var(--plate-hi);
   border: 1px solid var(--rule-hi);
   border-radius: 9px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, .55),
+    0 26px 44px -14px rgba(0, 0, 0, .85),
+    0 3px 10px rgba(0, 0, 0, .5);
 }
 .card-art {
   position: relative; z-index: 1;
@@ -272,10 +301,6 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   display: block;
   width: 100%; height: auto;
   border-radius: 9px;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, .55),
-    0 26px 44px -14px rgba(0, 0, 0, .85),
-    0 3px 10px rgba(0, 0, 0, .5);
 }
 
 /* ---------- CARD STAT SLOTS (positioning scaffold) ---------- */
@@ -301,6 +326,9 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   display: flex; align-items: center; justify-content: center; gap: 2px;
 }
 .card-icon { max-width: 100%; max-height: 100%; object-fit: contain; padding: 3px; }
+/* Shields sit further inside their box than the other stats. The token matches
+   this in millimetres — see SHIELD_PADDING_MM in TokenFace.tsx. */
+.card-icon--shield { padding: 5px; }
 /* Dice render at true size; a cluster that would overflow its slot box gets
    scaled down as a whole by DiceGroup in CardFace.tsx. */
 .card-icon--dice {
@@ -309,11 +337,50 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 
 /* ---------- BASE TOKEN ---------- */
+.token-frame { position: relative; flex: 0 0 auto; }
 .token-image {
-  flex: 0 0 auto;
+  display: block;
+  width: 100%; height: 100%;
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 12px 22px -10px rgba(0, 0, 0, .8);
 }
+
+/* token stat slots (positioning scaffold, mirrors .card-slot on the card).
+   Widths are in the token's mm space, so they stay hairline-thin at any zoom. */
+.token-slot {
+  fill: rgba(255, 210, 90, .08);
+  stroke: rgba(255, 210, 90, .75); stroke-width: .12; stroke-dasharray: .5 .4;
+  pointer-events: none;
+}
+.token-slot--text { fill: rgba(120, 200, 255, .1); stroke: rgba(120, 200, 255, .8); }
+.token-slot--group { fill: rgba(140, 230, 150, .1); stroke: rgba(140, 230, 150, .8); }
+.token-slot__label {
+  font-family: var(--ff-mono); font-size: 1.1px; fill: #fff;
+  paint-order: stroke; stroke: rgba(0, 0, 0, .9); stroke-width: .35;
+  pointer-events: none;
+}
+
+/* firing-arc overlay — coordinates are the token's own mm, so stroke widths
+   below are millimetres too and stay true at any zoom */
+.token-arcs {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.arc-lines, .hull-panel { pointer-events: none; }
+.arc-line__glow { stroke: #ff3b30; stroke-width: .9; opacity: .38; stroke-linecap: round; }
+.arc-line__core { stroke: #ffecec; stroke-width: .32; stroke-linecap: round; }
+.arc-handle {
+  fill: rgba(11, 14, 19, .82);
+  stroke: #ffecec; stroke-width: .3;
+  cursor: grab; touch-action: none;
+  transition: fill .12s, stroke .12s;
+}
+.arc-handle:hover { fill: var(--ion); }
+.arc-handle[data-grabbed="true"] { fill: var(--ion); stroke: #fff; cursor: grabbing; }
+/* pivots ride the centre axis, so they only move up and down */
+.arc-handle--pivot { fill: rgba(79, 168, 190, .34); cursor: ns-resize; }
+.arc-handle--pivot[data-grabbed="true"] { cursor: ns-resize; }
 
 /* stage captions */
 .cap {

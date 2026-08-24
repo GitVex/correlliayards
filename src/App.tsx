@@ -7,6 +7,7 @@ import type { Faction } from './components/CardRenderer'
 import { TOKEN_SIZE_MM, type BaseSize } from './components/TokenRenderer'
 import { DEFAULT_CARD_DATA, type CardData } from './cardData'
 import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from './cardImages'
+import { DEFAULT_FIRING_ARCS, type FiringArcs } from './firingArcs'
 
 const MIN_ZOOM = 25
 const MAX_ZOOM = 300
@@ -17,6 +18,7 @@ function App() {
   const [baseSize, setBaseSize] = useState<BaseSize>('Small')
   const [cardData, setCardData] = useState<CardData>(DEFAULT_CARD_DATA)
   const [images, setImages] = useState<CardImages>(EMPTY_CARD_IMAGES)
+  const [arcs, setArcs] = useState<FiringArcs>(DEFAULT_FIRING_ARCS)
 
   /** Picking or clearing an image frees the object URL the previous one held. */
   function setImage(key: CardImageKey, file: File | null) {
@@ -42,11 +44,21 @@ function App() {
           setCardData={setCardData}
           images={images}
           setImage={setImage}
+          arcs={arcs}
+          setArcs={setArcs}
         />
 
         {/* ===================== PREVIEW ===================== */}
         <section className="preview" aria-label="Preview">
-          <Stage faction={faction} baseSize={baseSize} zoom={zoom} cardData={cardData} images={images} />
+          <Stage
+            faction={faction}
+            baseSize={baseSize}
+            zoom={zoom}
+            cardData={cardData}
+            images={images}
+            arcs={arcs}
+            setArcs={setArcs}
+          />
 
           <div className="ptools">
             <div className="zoom" role="group" aria-label="Zoom">
