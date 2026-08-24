@@ -1,3 +1,14 @@
+/* The card face's own typeface, bundled with the app rather than fetched. Only
+   covers A-Z, a-z, 0-9, space and hyphen — no punctuation — so --ff-card keeps a
+   fallback behind it for anything outside that set. */
+@font-face {
+  font-family: 'Armada';
+  src: url('./assets/fonts/Armada-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --void: #0b0e13;
   --plate: #151b24;
@@ -16,6 +27,8 @@
   --ff-display: 'Saira Condensed', ui-sans-serif, system-ui, sans-serif;
   --ff-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;
   --ff-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  /* Everything printed on the card face — the editor chrome keeps the UI fonts. */
+  --ff-card: 'Armada', var(--ff-display);
 
   --topbar-h: 52px;
   --editor-w: 432px;

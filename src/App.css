@@ -158,6 +158,31 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   color: var(--faint); letter-spacing: .09em; margin-bottom: 3px;
 }
 
+/* image pickers in the artwork group */
+.filepick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.filepick__btn {
+  flex: 0 0 auto;
+  font-family: var(--ff-display);
+  font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase;
+  padding: 5px 10px; border: 1px solid var(--rule); border-radius: 2px;
+  color: var(--ash); cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.filepick__btn:hover { border-color: var(--ion); color: var(--chalk); }
+.filepick__btn input { display: none; }
+.filepick__name {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--ff-mono); font-size: 10px; color: var(--faint);
+}
+.filepick__clear {
+  flex: 0 0 auto;
+  width: 18px; height: 18px; border-radius: 2px;
+  border: 1px solid var(--rule); color: var(--faint);
+  font-size: 13px; line-height: 1;
+}
+.filepick__clear:hover { border-color: var(--die-red); color: var(--chalk); }
+
 /* dice pickers in the armament group */
 .arc { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; margin-bottom: 7px; }
 .arc__name { font-size: 11px; color: var(--ash); }
@@ -239,6 +264,9 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 .card-art {
   position: relative; z-index: 1;
   width: 69mm; flex: 0 0 auto;
+  /* Inherited by every element CardFace paints, so new card text picks it up too.
+     The dashed slot guides opt back out via .card-slot__label. */
+  font-family: var(--ff-card);
 }
 .card-image {
   display: block;

@@ -1,12 +1,14 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { getSlotBox } from './CardSlots'
 import {
+  hasSpeedClicks,
   parseDiceRows,
   type CardData,
   type DiceLetter,
   type DefenseTokenType,
   type UpgradeType,
 } from '../cardData'
+import type { CardImage, CardImages } from '../cardImages'
 
 // ---------------------------------------------------------------------------
 // The live card face — reads CardData and paints the real icons/text at the
@@ -182,10 +184,81 @@ function DiceGroup({ slotKey, dice, rotateRight, rotateLeft }: { slotKey: string
   )
 }
 
-function SpeedBackground({ speed, show }: { speed: 3 | 4; show: boolean }) {
+/** A line of small print set on its side inside its slot box. Rotation follows the
+ *  same convention as DiceGroup's side arcs: rotateLeft for the card's left edge
+ *  (reads top-to-bottom), rotateRight for its right (reads bottom-to-top). The
+ *  line sits at the far end of the strip rather than centred in it. */
+function VerticalText({
+  slotKey,
+  text,
+  rotateLeft,
+  rotateRight,
+}: {
+  slotKey: string
+  text: string
+  rotateLeft?: boolean
+  rotateRight?: boolean
+}) {
+  const style = boxStyle(slotKey, true)
+  if (!style || !text.trim()) return null
+
+  return (
+    // flex-end pushes the line to the bottom of the strip; anything longer than the
+    // box grows upward from there instead of spilling past the bottom edge.
+    <div className="card-icon-box" style={{ ...style, alignItems: 'flex-end' }}>
+      <div
+        style={{
+          // Real vertical text flow rather than a rotate() transform: a rotated box
+          // still lays out horizontally, so aligning it to one end of the strip
+          // would leave half the line hanging outside the box.
+          writingMode: rotateLeft || rotateRight ? 'vertical-rl' : undefined,
+          transform: rotateRight ? 'rotate(180deg)' : undefined,
+          whiteSpace: 'nowrap',
+          fontSize: '1.8mm',
+          letterSpacing: '.02em',
+          // Sits over the thumbnail art rather than the printed card, so it's light
+          // with a soft shadow to stay readable on any image behind it.
+          color: 'rgba(255, 255, 255, .82)',
+          textShadow: '0 0 1px rgba(0, 0, 0, .8)',
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  )
+}
+
+/** The ship art. It paints *behind* the card image (z-index -1 inside .card-art's
+ *  stacking context), so the card's own opaque top edge overlaps the bottom of the
+ *  art and becomes its border — no frame of our own is drawn. */
+function Thumbnail({ image }: { image: CardImage | null }) {
+  const style = boxStyle('thumbnail', true)
+  if (!style || !image) return null
+  return (
+    <img
+      src={image.url}
+      alt="Ship artwork"
+      style={{ ...style, zIndex: -1, objectFit: 'cover' }}
+    />
+  )
+}
+
+/** Schematic / tiny icon: centred in their box and sized to its height, letting a
+ *  wide source run past the box sides rather than squashing it. */
+function FittedImage({ slotKey, image, alt }: { slotKey: string; image: CardImage | null; alt: string }) {
+  const style = boxStyle(slotKey, true)
+  if (!style || !image) return null
+  return (
+    <div className="card-icon-box" style={style}>
+      <img src={image.url} alt={alt} style={{ height: '100%', width: 'auto' }} />
+    </div>
+  )
+}
+
+function SpeedBackground({ speed }: { speed: 3 | 4 }) {
   const style = boxStyle(speed === 3 ? 'speed3background' : 'speed4background', true)
   const icon = SPEED_BG[speed]
-  if (!style || !icon || !show) return null
+  if (!style || !icon) return null
   return <img src={icon} alt={`Speed ${speed} lane`} style={{ ...style, objectFit: 'cover' }} />
 }
 
@@ -201,22 +274,28 @@ function SpeedCells({ slotPrefix, values }: { slotPrefix: string; values: (numbe
   )
 }
 
-export function CardFace({ data }: { data: CardData }) {
+export function CardFace({ data, images }: { data: CardData; images: CardImages }) {
   const shipClassStyle = boxStyle('shipClass', true)
   const pointsStyle = boxStyle('points', true)
 
   return (
     <>
       {shipClassStyle && (
-        <div style={{ ...shipClassStyle, display: 'flex', alignItems: 'center', color: '#111', fontSize: '3.2mm', fontWeight: 600, overflow: 'hidden' }}>
+        <div style={{ ...shipClassStyle, display: 'flex', alignItems: 'center', color: '#111', fontSize: '5mm', fontWeight: 300, overflow: 'hidden' }}>
           {data.shipClass}
         </div>
       )}
       {pointsStyle && (
-        <div style={{ ...pointsStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111', fontSize: '3mm', fontWeight: 700 }}>
+        <div style={{ ...pointsStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111', fontSize: '3mm', fontWeight: 300 }}>
           {data.points}
         </div>
       )}
+
+      <Thumbnail image={images.thumbnail} />
+      <FittedImage slotKey="schematic" image={images.schematic} alt="Ship schematic" />
+      <FittedImage slotKey="Tinycon" image={images.tinycon} alt="Faction icon" />
+
+      <VerticalText slotKey="imageCredit" text={data.imageCredit} rotateLeft />
 
       <IconInBox slotKey="hull" icon={HULL_ICON[data.hull]} alt={`Hull ${data.hull}`} />
       <IconInBox slotKey="shieldFront" icon={SHIELD_ICON[data.shieldFront]} alt={`Shield front ${data.shieldFront}`} />
@@ -247,20 +326,33 @@ export function CardFace({ data }: { data: CardData }) {
         const style = boxStyle('upgradeSlots', true)
         if (!style) return null
         return (
-          <div className="card-icon-box" style={{ ...style, flexWrap: 'wrap' }}>
+          // Icons pack against the right end of the bar; the .2mm gap is the real
+          // spacing between them, so these drop .card-icon's default padding and
+          // the box carries the 3px inset off its own edges instead.
+          <div className="card-icon-box" style={{ ...style, flexWrap: 'wrap', justifyContent: 'flex-end', gap: '0.2mm', padding: '2px' }}>
             {data.upgrades.map((upgrade: UpgradeType, i) => (
-              <img key={i} src={UPGRADE_ICON[upgrade]} alt={upgrade} className="card-icon" style={{ maxWidth: '14%' }} />
+              <img key={i} src={UPGRADE_ICON[upgrade]} alt={upgrade} className="card-icon" style={{ maxWidth: '14%', padding: 0 }} />
             ))}
           </div>
         )
       })()}
 
+      {/* Speeds 3 and 4 are optional: an all-zero column means the ship doesn't
+          reach that speed, so its lane art *and* its yaw icons drop away again. */}
       <SpeedCells slotPrefix="s1" values={data.speed1} />
       <SpeedCells slotPrefix="s2" values={data.speed2} />
-      <SpeedBackground speed={3} show={data.speed3.some((v) => v !== null)} />
-      <SpeedCells slotPrefix="s3" values={data.speed3} />
-      <SpeedBackground speed={4} show={data.speed4.some((v) => v !== null)} />
-      <SpeedCells slotPrefix="s4" values={data.speed4} />
+      {hasSpeedClicks(data.speed3) && (
+        <>
+          <SpeedBackground speed={3} />
+          <SpeedCells slotPrefix="s3" values={data.speed3} />
+        </>
+      )}
+      {hasSpeedClicks(data.speed4) && (
+        <>
+          <SpeedBackground speed={4} />
+          <SpeedCells slotPrefix="s4" values={data.speed4} />
+        </>
+      )}
     </>
   )
 }

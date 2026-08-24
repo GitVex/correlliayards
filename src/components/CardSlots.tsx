@@ -14,7 +14,7 @@
 // touch position or the live render.
 // ---------------------------------------------------------------------------
 
-export const SHOW_GUIDES = true
+export const SHOW_GUIDES = false
 
 export type SlotBox = {
   leftPct: number
@@ -33,14 +33,19 @@ type CardSlot = {
 
 export const CARD_SLOTS: CardSlot[] = [
   // ---- Identity ----
-  { key: 'shipClass', label: 'Ship class', kind: 'text', box: { leftPct: 13, topPct: 2, widthPct: 83, heightPct: 6.3 } },
+  { key: 'shipClass', label: 'Ship class', kind: 'text', box: { leftPct: 14, topPct: 2, widthPct: 83, heightPct: 6.3 } },
   { key: 'points', label: 'Points', kind: 'text', box: { leftPct: 86, topPct: 94.6, widthPct: 11.2, heightPct: 3.5 } },
   { key: 'Tinycon', label: 'Tinycon', kind: 'icon',
     box: { leftPct: 7.5, topPct: 94, widthPct: 10.7, heightPct: 4 } },
   { key: 'schematic', label: 'schmematic', kind: 'icon',
-    box: { leftPct: 60, topPct: 49, widthPct: 23, heightPct: 31 } },
+    box: { leftPct: 59.5, topPct: 50.5, widthPct: 23, heightPct: 28 } },
+  // Sits above the card art (negative top) and paints behind it. The bottom edge
+  // runs to +2%, past the ~1.5% where the card PNG becomes fully opaque, so the
+  // card's own top edge overlaps the art instead of leaving a transparent seam.
   { key: 'thumbnail', label: 'thumbnail', kind: 'icon',
-    box: { leftPct: 0, topPct: -26, widthPct: 100, heightPct: 27 } },
+    box: { leftPct: 0, topPct: -26, widthPct: 100, heightPct: 28 } },
+  { key: 'imageCredit', label: 'image credit', kind: 'text',
+    box: { leftPct: 0, topPct: -26, widthPct: 4, heightPct: 24 } },
 
   // ---- Defense ----
   { key: 'hull', label: 'Hull', kind: 'icon', box: { leftPct: 18, topPct: 17, widthPct: 10, heightPct: 7 },

@@ -5,9 +5,10 @@ import type { Faction } from './CardRenderer'
 import type { BaseSize } from './TokenRenderer'
 import { DEFENSE_TOKEN_OPTIONS, UPGRADE_OPTIONS } from '../cardData'
 import type { CardData, DefenseTokenType, UpgradeType } from '../cardData'
+import type { CardImageKey, CardImages } from '../cardImages'
 
 type Tab = 'Fields' | 'JSON'
-type GroupKey = 'identity' | 'defense' | 'armament' | 'command' | 'ability' | 'slots' | 'speed'
+type GroupKey = 'identity' | 'artwork' | 'defense' | 'armament' | 'command' | 'ability' | 'slots' | 'speed'
 
 function Group({
   title,
@@ -76,6 +77,8 @@ export function Editor({
   setBaseSize,
   cardData,
   setCardData,
+  images,
+  setImage,
 }: {
   faction: Faction
   setFaction: (faction: Faction) => void
@@ -83,6 +86,8 @@ export function Editor({
   setBaseSize: (baseSize: BaseSize) => void
   cardData: CardData
   setCardData: (updater: (data: CardData) => CardData) => void
+  images: CardImages
+  setImage: (key: CardImageKey, file: File | null) => void
 }) {
   const jsonTabId = useId()
 
@@ -90,6 +95,7 @@ export function Editor({
 
   const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
     identity: true,
+    artwork: true,
     defense: true,
     armament: true,
     command: true,
@@ -129,12 +135,13 @@ export function Editor({
       <div className="editor__scroll">
         <Group
           title="Identity"
-          count="5 / 5"
+          count="6 / 6"
           open={openGroups.identity}
           onToggle={() => toggleGroup('identity')}
         >
           <EditorOption kind="text" label="Ship class" value={cardData.shipClass} onChange={(v) => set('shipClass', v)} />
           <EditorOption kind="text" label="Variant" value={cardData.variant} onChange={(v) => set('variant', v)} />
+          <EditorOption kind="text" label="Image credit" value={cardData.imageCredit} onChange={(v) => set('imageCredit', v)} />
           <EditorOption
             kind="select"
             label="Faction"
@@ -153,6 +160,32 @@ export function Editor({
             kind="number" label="Points" maxWidth={64}
             value={String(cardData.points)}
             onChange={(v) => set('points', Number(v) || 0)}
+          />
+        </Group>
+
+        <Group
+          title="Artwork"
+          count="3 images"
+          open={openGroups.artwork}
+          onToggle={() => toggleGroup('artwork')}
+        >
+          <p className="lbl" style={{ marginBottom: 8 }}>
+            Files stay on this machine — they're read straight into the preview, not uploaded anywhere.
+          </p>
+          <EditorOption
+            kind="file" label="Thumbnail"
+            fileName={images.thumbnail?.name}
+            onChange={(file) => setImage('thumbnail', file)}
+          />
+          <EditorOption
+            kind="file" label="Schematic"
+            fileName={images.schematic?.name}
+            onChange={(file) => setImage('schematic', file)}
+          />
+          <EditorOption
+            kind="file" label="Tiny icon"
+            fileName={images.tinycon?.name}
+            onChange={(file) => setImage('tinycon', file)}
           />
         </Group>
 

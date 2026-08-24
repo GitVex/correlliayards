@@ -14,6 +14,8 @@ export type UpgradeType = 'CO' | 'DR' | 'EX' | 'FC' | 'FS' | 'IC' | 'OD' | 'OF' 
 export interface CardData {
   shipClass: string
   variant: string
+  /** Artist/source line printed vertically down the left edge of the thumbnail. */
+  imageCredit: string
   points: number
   hull: number
   shieldFront: number
@@ -32,7 +34,8 @@ export interface CardData {
   armamentRear: string
   armamentAntiSquadron: string
   upgrades: UpgradeType[]
-  /** Yaw value (0/1/2) per pyramid cell, or null if that cell is unset. */
+  /** Yaw value (0/1/2) per pyramid cell, or null while the field is blank.
+   *  A column that is all zeros means the ship simply doesn't have that speed. */
   speed1: (number | null)[]
   speed2: (number | null)[]
   speed3: (number | null)[]
@@ -42,6 +45,7 @@ export interface CardData {
 export const DEFAULT_CARD_DATA: CardData = {
   shipClass: 'Lancer-class Pursuit Craft',
   variant: 'Interceptor Refit',
+  imageCredit: 'Artist Name',
   points: 48,
   hull: 4,
   shieldFront: 2,
@@ -58,10 +62,10 @@ export const DEFAULT_CARD_DATA: CardData = {
   armamentRear: 'U',
   armamentAntiSquadron: 'UU',
   upgrades: ['OF', 'WT', 'DR'],
-  speed1: [null],
-  speed2: [null, null],
-  speed3: [null, null, null],
-  speed4: [null, null, null, null],
+  speed1: [0],
+  speed2: [0, 0],
+  speed3: [0, 0, 0],
+  speed4: [0, 0, 0, 0],
 }
 
 export const DEFENSE_TOKEN_OPTIONS: DefenseTokenType[] = ['—', 'Brace', 'Redirect', 'Evade', 'Scatter', 'Contain', 'Salvo']
@@ -81,6 +85,13 @@ export const UPGRADE_OPTIONS: { value: UpgradeType; label: string }[] = [
   { value: 'SW', label: 'Superweapon' },
   { value: 'CO', label: 'Commander' },
 ]
+
+/** True once a speed column has at least one real click in it. An all-zero (or
+ *  blank) column reads as "this ship has no such speed" — speeds 3 and 4 print
+ *  nothing at all in that case, lane art included. */
+export function hasSpeedClicks(values: (number | null)[]): boolean {
+  return values.some((value) => value !== null && value !== 0)
+}
 
 /** "RU;UUB" -> [[R,U],[U,U,B]]. Invalid characters are dropped; blank input -> no rows. */
 export function parseDiceRows(input: string): DiceLetter[][] {

@@ -1,12 +1,14 @@
 import { CardRenderer, type Faction } from './CardRenderer'
 import { TokenRenderer, type BaseSize } from './TokenRenderer'
 import type { CardData } from '../cardData'
+import type { CardImages } from '../cardImages'
 
 export function Stage({
   faction,
   baseSize,
   zoom,
   cardData,
+  images,
 }: {
   faction: Faction
   baseSize: BaseSize
@@ -15,13 +17,14 @@ export function Stage({
    *  reads those measurements (e.g. a PNG export) stays accurate regardless of zoom. */
   zoom: number
   cardData: CardData
+  images: CardImages
 }) {
   return (
     <div className="stage">
       <div className="stage__canvas" style={{ transform: `scale(${zoom / 100})` }}>
         <div className="piece">
           <p className="cap">Ship card</p>
-          <CardRenderer faction={faction} cardData={cardData} />
+          <CardRenderer faction={faction} cardData={cardData} images={images} />
         </div>
 
         <div className="piece">

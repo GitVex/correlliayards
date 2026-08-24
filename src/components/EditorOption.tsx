@@ -25,7 +25,20 @@ type TextareaOptionProps = CommonProps & {
   onChange?: (value: string) => void
 }
 
-export type EditorOptionProps = TextOptionProps | SelectOptionProps | TextareaOptionProps
+type FileOptionProps = CommonProps & {
+  kind: 'file'
+  /** Name of the file currently loaded, or undefined for "nothing picked yet". */
+  fileName?: string
+  accept?: string
+  /** Called with the picked File, or null when the current one is cleared. */
+  onChange: (file: File | null) => void
+}
+
+export type EditorOptionProps =
+  | TextOptionProps
+  | SelectOptionProps
+  | TextareaOptionProps
+  | FileOptionProps
 
 export function EditorOption(props: EditorOptionProps) {
   const { label, compact } = props
@@ -55,6 +68,36 @@ export function EditorOption(props: EditorOptionProps) {
               <option key={choice}>{choice}</option>
             ))}
           </select>
+        )
+      case 'file':
+        return (
+          <div className="filepick">
+            <label className="filepick__btn">
+              {props.fileName ? 'Replace' : 'Upload'}
+              <input
+                type="file"
+                accept={props.accept ?? 'image/*'}
+                onChange={(e) => {
+                  props.onChange(e.target.files?.[0] ?? null)
+                  // Clear the input so re-picking the same file still fires onChange.
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            <span className="filepick__name" title={props.fileName}>
+              {props.fileName ?? 'none'}
+            </span>
+            {props.fileName && (
+              <button
+                type="button"
+                className="filepick__clear"
+                aria-label={`Remove ${label}`}
+                onClick={() => props.onChange(null)}
+              >
+                ×
+              </button>
+            )}
+          </div>
         )
       case 'textarea':
         return (
