@@ -15,9 +15,12 @@ export function Stage({
 }: {
   faction: Faction
   baseSize: BaseSize
-  /** Display zoom, as a percentage (100 = actual physical size). Purely visual — the
-   *  card/token elements underneath keep their real mm dimensions, so anything that
-   *  reads those measurements (e.g. a PNG export) stays accurate regardless of zoom. */
+  /** Display zoom, as a percentage (100 = actual physical size). Applied with the
+   *  `zoom` property rather than a scale() transform: a transform leaves layout
+   *  size untouched, so the stage never learns the content grew and everything
+   *  above and left of centre ends up unreachable. The pieces keep their mm
+   *  dimensions in their own coordinates — anything reading a measurement off the
+   *  DOM (dice fitting, arc handles) works from ratios, which are zoom-invariant. */
   zoom: number
   cardData: CardData
   images: CardImages
@@ -26,7 +29,7 @@ export function Stage({
 }) {
   return (
     <div className="stage">
-      <div className="stage__canvas" style={{ transform: `scale(${zoom / 100})` }}>
+      <div className="stage__canvas" style={{ zoom: zoom / 100 }}>
         <div className="piece">
           <p className="cap">Ship card</p>
           <CardRenderer faction={faction} cardData={cardData} images={images} />

@@ -258,16 +258,19 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   background-size: 34px 34px;
   mask-image: radial-gradient(78% 62% at 50% 42%, #000 20%, transparent 100%);
 }
+/* Centring is left to the canvas's auto margins rather than align/justify: a
+   flex item centred that way has its top and left overflow clipped out of reach
+   once it grows past the scroll container, which is exactly what zooming does. */
 .stage {
   flex: 1; min-height: 0; overflow: auto;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
   padding: 34px 24px;
   position: relative;
 }
 .stage__canvas {
   display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: center;
   gap: 40px;
-  transform-origin: center;
+  margin: auto;
 }
 .piece { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 

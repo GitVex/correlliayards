@@ -12,7 +12,7 @@
 // TOKEN_SLOTS is for anything pinned to the token itself instead.
 // ---------------------------------------------------------------------------
 
-export const SHOW_TOKEN_GUIDES = false
+export const SHOW_TOKEN_GUIDES = true
 
 export type TokenSlotBox = {
   leftPct: number
@@ -49,24 +49,24 @@ export const FRONT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
     box: { leftPct: 7.93, topPct: 16.9, widthPct: 26.7, heightPct: 42 } },
   { key: 'armament', label: 'Armament', kind: 'group',
-    box: { leftPct: 36.9, topPct: 17.7, widthPct: 52.3, heightPct: 42 },
+    box: { leftPct: 40, topPct: 17.7, widthPct: 50, heightPct: 42 },
     note: 'Dice for this arc — the striped strip beside the shield circle.' },
 ]
 
 /** Right arc. */
 export const RIGHT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
-    box: { leftPct: 7.93, topPct: 16.9, widthPct: 26.7, heightPct: 42 } },
+    box: { leftPct: 8.7, topPct: 18, widthPct: 24.7, heightPct: 42 } },
   { key: 'armament', label: 'Armament', kind: 'group',
-    box: { leftPct: 36.9, topPct: 17.7, widthPct: 52.3, heightPct: 42 } },
+    box: { leftPct: 40, topPct: 17.7, widthPct: 50, heightPct: 42 } },
 ]
 
 /** Left arc — drawn mirrored, tuned unmirrored. */
 export const LEFT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
-    box: { leftPct: 7.93, topPct: 16.9, widthPct: 26.7, heightPct: 42 } },
+    box: { leftPct: 7.93, topPct: 19, widthPct: 26.7, heightPct: 42 } },
   { key: 'armament', label: 'Armament', kind: 'group',
-    box: { leftPct: 36.9, topPct: 17.7, widthPct: 52.3, heightPct: 42 } },
+    box: { leftPct: 40, topPct: 17.7, widthPct: 50, heightPct: 42 } },
 ]
 
 /** Percentages of the footer panel at the foot of the centre axis, read off
@@ -75,7 +75,7 @@ export const HULL_FOOTER_SLOTS: TokenSlot[] = [
   { key: 'armamentAntiSquadron', label: 'A1', kind: 'icon',
     box: { leftPct: 16, topPct: 42, widthPct: 10, heightPct: 37 } },
   { key: 'armamentRear', label: 'ARe', kind: 'text',
-    box: { leftPct: 29.9, topPct: 40.5, widthPct: 29.3, heightPct: 39.7 } },
+    box: { leftPct: 29.9, topPct: 40.5, widthPct: 27.8, heightPct: 39.7 } },
   { key: 'shieldRear', label: 'shieldRear', kind: 'icon', padMm: ICON_PAD_MM,
     box: { leftPct: 60.1, topPct: 40.5, widthPct: 14.9, heightPct: 39.7 } },
   { key: 'hull', label: 'hull', kind: 'text', padMm: ICON_PAD_MM,
