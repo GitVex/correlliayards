@@ -13,7 +13,6 @@ export type UpgradeType = 'CO' | 'DR' | 'EX' | 'FC' | 'FS' | 'IC' | 'OD' | 'OF' 
 
 export interface CardData {
   shipClass: string
-  variant: string
   /** Artist/source line printed vertically down the left edge of the thumbnail. */
   imageCredit: string
   points: number
@@ -43,42 +42,43 @@ export interface CardData {
 }
 
 export const DEFAULT_CARD_DATA: CardData = {
-  shipClass: 'Lancer-class Pursuit Craft',
-  variant: 'Interceptor Refit',
+  shipClass: 'CR90 Corvette Flak',
   imageCredit: 'Artist Name',
-  points: 48,
+  points: 44,
   hull: 4,
   shieldFront: 2,
   shieldLeft: 2,
   shieldRight: 2,
   shieldRear: 1,
   command: 1,
-  squadron: 3,
+  squadron: 1,
   engineer: 2,
-  defenseTokens: ['Evade', 'Evade', 'Brace', 'Redirect'],
-  armamentFront: 'RU',
-  armamentLeft: 'U',
-  armamentRight: 'U',
-  armamentRear: 'U',
-  armamentAntiSquadron: 'UU',
-  upgrades: ['OF', 'WT', 'DR'],
-  speed1: [0],
-  speed2: [0, 0],
-  speed3: [0, 0, 0],
-  speed4: [0, 0, 0, 0],
+  defenseTokens: ['Evade', 'Evade', 'Redirect', '—'],
+  armamentFront: 'UU',
+  armamentLeft: 'UB',
+  armamentRight: 'BU',
+  armamentRear: 'UU',
+  armamentAntiSquadron: 'BU',
+  upgrades: ['OF', 'ST', 'DR', 'TU'],
+  speed1: [2],
+  speed2: [1, 2],
+  speed3: [0, 1, 2],
+  speed4: [0, 1, 1, 2],
 }
 
 export const DEFENSE_TOKEN_OPTIONS: DefenseTokenType[] = ['—', 'Brace', 'Redirect', 'Evade', 'Scatter', 'Contain', 'Salvo']
 
+/** Each code is the filename of its icon in assets/icons/upgrades — that glob is
+ *  the whole of UPGRADE_ICON, so a code and its artwork have to agree here. */
 export const UPGRADE_OPTIONS: { value: UpgradeType; label: string }[] = [
   { value: 'OF', label: 'Officer' },
   { value: 'WT', label: 'Weapons Team' },
   { value: 'DR', label: 'Defensive Retrofit' },
-  { value: 'OD', label: 'Offensive Retrofit' },
+  { value: 'OR', label: 'Offensive Retrofit' },
   { value: 'TU', label: 'Turbolaser' },
   { value: 'IC', label: 'Ion Cannon' },
   { value: 'ST', label: 'Support Team' },
-  { value: 'OR', label: 'Ordnance' },
+  { value: 'OD', label: 'Ordnance' },
   { value: 'FC', label: 'Fleet Command' },
   { value: 'FS', label: 'Fleet Support' },
   { value: 'EX', label: 'Experimental Retrofit' },
@@ -91,6 +91,13 @@ export const UPGRADE_OPTIONS: { value: UpgradeType; label: string }[] = [
  *  nothing at all in that case, lane art included. */
 export function hasSpeedClicks(values: (number | null)[]): boolean {
   return values.some((value) => value !== null && value !== 0)
+}
+
+/** How many speeds the ship has. Speeds 1 and 2 are always printed; 3 and 4 only
+ *  once they hold a click — the same rule CardFace renders the pyramid by, so the
+ *  editor's count and the printed card can't disagree. */
+export function speedCount(data: CardData): number {
+  return 2 + (hasSpeedClicks(data.speed3) ? 1 : 0) + (hasSpeedClicks(data.speed4) ? 1 : 0)
 }
 
 /** "RU;UUB" -> [[R,U],[U,U,B]]. Invalid characters are dropped; blank input -> no rows. */

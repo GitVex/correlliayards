@@ -8,17 +8,33 @@ import { TOKEN_SIZE_MM, type BaseSize } from './components/TokenRenderer'
 import { DEFAULT_CARD_DATA, type CardData } from './cardData'
 import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from './cardImages'
 import { DEFAULT_FIRING_ARCS, type FiringArcs } from './firingArcs'
+import { cardJson } from './cardJson'
 
 const MIN_ZOOM = 25
 const MAX_ZOOM = 300
 
 function App() {
   const [zoom, setZoom] = useState(100)
-  const [faction, setFaction] = useState<Faction>('Galactic Empire')
+  const [faction, setFaction] = useState<Faction>('Rebel Alliance')
   const [baseSize, setBaseSize] = useState<BaseSize>('Small')
   const [cardData, setCardData] = useState<CardData>(DEFAULT_CARD_DATA)
   const [images, setImages] = useState<CardImages>(EMPTY_CARD_IMAGES)
   const [arcs, setArcs] = useState<FiringArcs>(DEFAULT_FIRING_ARCS)
+
+  /** What the copy button last did, so it can say so and then go quiet again. */
+  const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle')
+
+  async function copyJson() {
+    try {
+      await navigator.clipboard.writeText(cardJson({ faction, baseSize, cardData, images, arcs }))
+      setCopied('done')
+    } catch {
+      // Blocked clipboard — an insecure origin, or the window not focused. The
+      // JSON tab shows the same text, so there is always a way to get at it.
+      setCopied('failed')
+    }
+    window.setTimeout(() => setCopied('idle'), 1600)
+  }
 
   /** Picking or clearing an image frees the object URL the previous one held. */
   function setImage(key: CardImageKey, file: File | null) {
@@ -78,7 +94,9 @@ function App() {
               card 69 × 89 mm · token {TOKEN_SIZE_MM[baseSize].width} × {TOKEN_SIZE_MM[baseSize].height} mm · export @ 4×
             </span>
             <div className="ptools__spacer" />
-            <button className="btn">Copy JSON</button>
+            <button className="btn" onClick={copyJson}>
+              {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
+            </button>
           </div>
         </section>
       </div>

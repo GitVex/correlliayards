@@ -36,12 +36,13 @@ export type FiringArcs = {
 /** Order matches the points arcHandlePoints returns: clockwise from top-left. */
 export const ARC_HANDLE_LABELS = ['Front left', 'Front right', 'Rear right', 'Rear left'] as const
 
-/** Corner to corner through the middle, which is what most ships print. */
+/** Corner to corner, converging just below the middle — the CR90's arcs, and a
+ *  fair starting point for most ships. */
 export const DEFAULT_FIRING_ARCS: FiringArcs = {
   front: 0,
   rear: 2,
-  frontPivot: 0.5,
-  rearPivot: 0.5,
+  frontPivot: 0.5206,
+  rearPivot: 0.5206,
   split: false,
 }
 
