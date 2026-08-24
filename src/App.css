@@ -370,12 +370,20 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   width: 100%; height: 100%;
   overflow: visible;
 }
-.arc-lines, .hull-panel { pointer-events: none; }
-.arc-line__glow { stroke: #ff3b30; stroke-width: .9; opacity: .38; stroke-linecap: round; }
-.arc-line__core { stroke: #ffecec; stroke-width: .32; stroke-linecap: round; }
+.arc-lines, .hull-panel, .token-face { pointer-events: none; }
+/* The ship name printed on the token — same typeface and ink as the card face,
+   which sets --ff-card on .card-art. SVG text inherits neither, so it says so. */
+.token-name { font-family: var(--ff-card); fill: #111; }
+/* Arc colour is the faction's: green for the Empire, red for the Alliance. The
+   core stays a near-white tinted towards the glow, so the line reads as one beam. */
+.token-frame { --arc-glow: #ff3b30; --arc-core: #ffecec; }
+.token-frame[data-faction="Galactic Empire"] { --arc-glow: #3ce05a; --arc-core: #ecffee; }
+.token-frame[data-faction="Rebel Alliance"] { --arc-glow: #ff3b30; --arc-core: #ffecec; }
+.arc-line__glow { stroke: var(--arc-glow); stroke-width: .9; opacity: .38; stroke-linecap: round; }
+.arc-line__core { stroke: var(--arc-core); stroke-width: .32; stroke-linecap: round; }
 .arc-handle {
   fill: rgba(11, 14, 19, .82);
-  stroke: #ffecec; stroke-width: .3;
+  stroke: var(--arc-core); stroke-width: .3;
   cursor: grab; touch-action: none;
   transition: fill .12s, stroke .12s;
 }

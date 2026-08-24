@@ -37,7 +37,14 @@ export function Stage({
 
         <div className="piece">
           <p className="cap">Base token</p>
-          <TokenRenderer baseSize={baseSize} cardData={cardData} arcs={arcs} setArcs={setArcs} />
+          <TokenRenderer
+            baseSize={baseSize}
+            faction={faction}
+            cardData={cardData}
+            images={images}
+            arcs={arcs}
+            setArcs={setArcs}
+          />
         </div>
       </div>
     </div>

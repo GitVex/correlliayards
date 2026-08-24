@@ -4,8 +4,10 @@ import mediumToken from '../assets/base_tokens/medium_blank.png'
 import largeToken from '../assets/base_tokens/large_blank.png'
 import hullSection from '../assets/base_tokens/blank_hull_section.png'
 import hullFooter from '../assets/base_tokens/blank_hull_footer.png'
-import { HullFooterFace, HullSectionFace } from './TokenFace'
+import { HullFooterFace, HullSectionFace, TokenFace } from './TokenFace'
 import type { CardData } from '../cardData'
+import type { CardImages } from '../cardImages'
+import type { Faction } from './CardRenderer'
 import {
   HULL_FOOTER_SLOTS,
   FRONT_SECTION_SLOTS,
@@ -108,12 +110,18 @@ type Grabbed = number | 'front' | 'rear' | null
 
 export function TokenRenderer({
   baseSize,
+  faction,
   cardData,
+  images,
   arcs,
   setArcs,
 }: {
   baseSize: BaseSize
+  /** Only reaches CSS, which colours the firing arcs by it. */
+  faction: Faction
   cardData: CardData
+  /** The user-supplied artwork — the token only uses the tinycon. */
+  images: CardImages
   arcs: FiringArcs
   setArcs: (updater: (arcs: FiringArcs) => FiringArcs) => void
 }) {
@@ -165,7 +173,7 @@ export function TokenRenderer({
   }
 
   return (
-    <div className="token-frame" style={{ width: `${width}mm`, height: `${height}mm` }}>
+    <div className="token-frame" data-faction={faction} style={{ width: `${width}mm`, height: `${height}mm` }}>
       <img className="token-image" src={TOKEN_IMG[baseSize]} alt={`${baseSize} base token`} />
 
       <svg
@@ -174,6 +182,8 @@ export function TokenRenderer({
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
       >
+        <TokenFace data={cardData} images={images} width={width} height={height} />
+
         {/* One hull panel per arc, sat where that arc's pivot bisects it, hugging
             the edge it lands on. The footer takes the rear arc's place at the foot
             of the centre axis.

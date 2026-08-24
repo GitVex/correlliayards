@@ -86,7 +86,10 @@ export const HULL_FOOTER_SLOTS: TokenSlot[] = [
 export const TOKEN_SLOTS: TokenSlot[] = [
   { key: 'shipClass', label: 'Ship class', kind: 'text',
     box: { leftPct: 3, topPct: 78, widthPct: 94, heightPct: 6.8 },
-    note: 'The name band above the footer. Measured off the reference render — this is where blank_ship_name_slot.png would sit, but nothing is drawn there yet.' },
+    note: 'The name band above the footer. blank_ship_name_slot.png is stretched to fill this box exactly, so the backdrop always covers whatever is tuned here.' },
+  { key: 'tinycon', label: 'Tinycon', kind: 'icon',
+    box: { leftPct: 40, topPct: 20, widthPct: 20, heightPct: 11 },
+    note: "The faction icon, inverted, in the clear band between the front hull panel and the artwork window. Square on a small base; the icon keeps its own aspect ratio inside the box, so widening it won't stretch it." },
 ]
 
 /** Shared lookup, the one source of truth for position that a face component

@@ -14,7 +14,7 @@
 // touch position or the live render.
 // ---------------------------------------------------------------------------
 
-export const SHOW_GUIDES = true
+export const SHOW_GUIDES = false
 
 export type SlotBox = {
   leftPct: number
