@@ -381,17 +381,6 @@ export function Editor({
           </>
         )}
       </div>
-
-      <div className="flags">
-        <div className="flag">
-          <span className="flag__tag">CHECK</span>
-          <span className="flag__msg">
-            Anti-squadron total is <b>4 dice</b> — 1 above the highest small-base
-            ship in the core set. Compare against the other variant before locking
-            points.
-          </span>
-        </div>
-      </div>
     </section>
   )
 }

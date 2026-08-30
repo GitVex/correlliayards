@@ -1,75 +1,44 @@
-# React + TypeScript + Vite
+# Corellia Yards
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A layout tool for custom *Star Wars: Armada* components. You fill in a ship's
+stats on the left, and the right-hand stage renders the printable ship card and
+its matching base token live, at true physical size (69 × 89 mm card, base
+tokens per size class). The same definition can be read back out as JSON.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Running it
 
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+npm install
+npm run dev
 ```
+
+`npm run build` type-checks and produces a static bundle in `dist/`.
+
+## What's built
+
+- **Ship cards** — identity, points, hull and shields, defense tokens, command
+  values, per-arc armament dice, the speed chart, and upgrade slots.
+- **Base tokens** — small/medium/large, with the ship name band, hull panel, and
+  draggable firing arcs.
+- **Artwork** — thumbnail, schematic, and tiny icon are read straight off your
+  machine into the preview. Nothing is uploaded anywhere.
+- **JSON** — the JSON tab is a live view of the same state the fields own, and
+  *Copy JSON* puts that exact text on the clipboard.
+
+Squadron and upgrade cards are not built yet; the topbar shows them as
+in-development rather than pretending otherwise.
+
+## Where things live
+
+| Path | What it is |
+| --- | --- |
+| `src/cardData.ts` | The one shared shape of everything printed on a card. |
+| `src/components/CardSlots.tsx` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. |
+| `src/components/TokenSlots.tsx` | The same, for the base token, in the token's own mm space. |
+| `src/components/CardFace.tsx` | Reads the slots above and paints the real, data-driven icons and text. |
+| `src/firingArcs.ts` | Arc geometry and the drag maths behind the token handles. |
+| `src/index.css` | Palette and type tokens. |
+| `src/assets/textures/` | The tiling SVG turbulence the rusted chrome is built from. |
+
+`CardSlots.tsx` carries `SHOW_GUIDES` and `TokenSlots.tsx` carries `SHOW_TOKEN_GUIDES`. Either draws labelled dashed outlines
+over every box — turn it on while tuning placement, off to see the real face.
