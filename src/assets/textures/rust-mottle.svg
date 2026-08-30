@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420">
+  <!-- Oxide blooms. Low-frequency turbulence pushed through a colour matrix that
+       throws away the noise's own colour and keeps only its luminance as alpha,
+       so what comes out is one flat rust hue in ragged patches. The -0.34 bias
+       clips the thin middle of the noise away and leaves islands rather than a
+       uniform wash. -->
+  <filter id="mottle" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.011 0.017" numOctaves="5" seed="3" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix"
+      values="0 0 0 0 0.64
+              0 0 0 0 0.29
+              0 0 0 0 0.11
+              0.72 0 0 0 -0.34"/>
+  </filter>
+  <rect width="420" height="420" filter="url(#mottle)"/>
+</svg>

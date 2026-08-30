@@ -10,19 +10,35 @@
 }
 
 :root {
-  --void: #0b0e13;
-  --plate: #151b24;
-  --plate-hi: #1b232e;
-  --rule: #242f3d;
-  --rule-hi: #334254;
-  --chalk: #e4eaf2;
-  --ash: #7e8ca0;
-  --faint: #556274;
-  --ion: #4fa8be;
-  --amber: #d9a441;
+  /* ---------------------------------------------------------------
+     Oxidised iron. The chrome is a rusted hull plate; the ink on it is
+     bone-white stencil paint. Nothing in here touches the card or token
+     faces — those print real game pieces and keep their own colours.
+     --------------------------------------------------------------- */
+  --void: #14100c;      /* deepest shadow, the gap between plates */
+  --plate: #1e1811;     /* panel ground */
+  --plate-hi: #2a2118;  /* raised or hovered panel */
+  --rule: #3a2d20;      /* seam between plates */
+  --rule-hi: #55412d;   /* a seam catching light */
+  --chalk: #ecdfcd;     /* stencil paint */
+  --ash: #a3907a;       /* weathered paint */
+  --faint: #6f5d49;     /* barely-there lettering */
+  --rust: #c2622c;      /* the accent: fresh oxide */
+  --rust-hi: #e0803f;   /* oxide under a work lamp */
+  --rust-ink: #1a0f07;  /* what reads on top of the accent */
+  --amber: #d9a441;     /* caution markings */
+
+  /* Dice keep their tabletop colours — these are game data, not decoration. */
   --die-red: #b93a2e;
   --die-blue: #3d7fb8;
   --die-black: #1a1f27;
+
+  /* Surface texture, layered under the panel gradients. Tiling SVG turbulence
+     rather than bitmaps, so it stays sharp at any zoom and costs a few hundred
+     bytes each. */
+  --tex-grain: url('./assets/textures/rust-grain.svg');
+  --tex-mottle: url('./assets/textures/rust-mottle.svg');
+  --tex-streak: url('./assets/textures/rust-streak.svg');
 
   --ff-display: 'Saira Condensed', ui-sans-serif, system-ui, sans-serif;
   --ff-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;
@@ -47,7 +63,9 @@ body {
 }
 body {
   margin: 0;
-  background: var(--void);
+  background-color: var(--void);
+  background-image: var(--tex-grain), var(--tex-mottle);
+  background-blend-mode: overlay, soft-light;
   color: var(--chalk);
   font-family: var(--ff-body);
   font-size: 13px;
@@ -69,7 +87,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ion);
+  outline: 2px solid var(--rust);
   outline-offset: 2px;
   border-radius: 2px;
 }

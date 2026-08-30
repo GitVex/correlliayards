@@ -31,6 +31,10 @@ function rectFor(slots: TokenSlot[], key: string, width: number, height: number,
 /** Largest a die prints on the token, however much room its box has. */
 const MAX_DIE_MM = 1.8
 
+/** Hand-tuned offset off the centre of an armament box — the printed strip the
+ *  dice sit on isn't quite centred in the box it's tuned as. */
+const NUDGE_MM = 0.2
+
 /** One icon, centred in its box and scaled to fit — the SVG equivalent of the
  *  card's object-fit: contain. `panelRotation` is undone about the icon's own
  *  centre, so a value inside a panel that's turned on its side still reads
@@ -112,16 +116,39 @@ function diceLayout(rows: DiceLetter[][], stack: boolean) {
  *
  *  `stack` puts every die on its own line regardless of the `;` rows in the dice
  *  string. That's the anti-squadron column on the token; the card lays the same
- *  field out its own way. */
-function DiceInSlot({ dice, rect, stack = false }: { dice: string; rect: Rect | null; stack?: boolean }) {
+ *  field out its own way.
+ *
+ *  `flipX`/`flipY` mirror the finished cluster inside its box, which is how a
+ *  broadside is turned to face the right way round — see HullSectionFace. Only
+ *  the arrangement moves: a die is a plain diamond, so flipping one is invisible. */
+function DiceInSlot({
+  dice,
+  rect,
+  stack = false,
+  flipX = false,
+  flipY = false,
+}: {
+  dice: string
+  rect: Rect | null
+  stack?: boolean
+  flipX?: boolean
+  flipY?: boolean
+}) {
   const parsed = parseDiceRows(dice).filter((row) => row.length > 0)
   const rows = stack ? parsed.flat().map((letter) => [letter]) : parsed
   if (!rect || rows.length === 0) return null
 
   const { places, width, height } = diceLayout(rows, stack)
   const size = Math.min(MAX_DIE_MM, rect.width / width, rect.height / height)
-  const left = rect.x + (rect.width - width * size) / 2 + .2
-  const top = rect.y + (rect.height - height * size) / 2 + .2
+  // The nudge is taken in the cluster's own frame, not the panel's, so a flipped
+  // cluster stays an exact mirror of the one it's flipped from.
+  const left = rect.x + (rect.width - width * size) / 2 + (flipX ? -NUDGE_MM : NUDGE_MM)
+  const top = rect.y + (rect.height - height * size) / 2 + (flipY ? -NUDGE_MM : NUDGE_MM)
+  // A die is placed by its own top-left corner, so mirroring the cluster measures
+  // from the far corner of the last die (width/height are in die units, and a die
+  // is 1 of them) rather than from the cluster's edge.
+  const placeX = (x: number) => left + (flipX ? width - 1 - x : x) * size
+  const placeY = (y: number) => top + (flipY ? height - 1 - y : y) * size
 
   return (
     <>
@@ -129,8 +156,8 @@ function DiceInSlot({ dice, rect, stack = false }: { dice: string; rect: Rect | 
         <image
           key={i}
           href={DICE_ICON[place.letter]}
-          x={left + place.x * size}
-          y={top + place.y * size}
+          x={placeX(place.x)}
+          y={placeY(place.y)}
           width={size}
           height={size}
           preserveAspectRatio="xMidYMid meet"
@@ -140,26 +167,41 @@ function DiceInSlot({ dice, rect, stack = false }: { dice: string; rect: Rect | 
   )
 }
 
-/** The shield value and dice for one arc, inside a hull section panel. */
+/** The shield value and dice for one arc, inside a hull section panel.
+ *
+ *  The broadsides print the card's left-arc cluster (DiceGroup in CardFace), just
+ *  at the token's size: first row of the dice string innermost, dice within a row
+ *  running toward the rear, later rows stepping outward — and the two sides
+ *  mirror each other across the ship's centre line.
+ *
+ *  Getting there is a flip per axis the panel disagrees on. A panel's y already
+ *  points inward, so both broadsides flip y to send their later rows back out.
+ *  Its x runs down the token on the right-hand panel but *up* it on the left,
+ *  whose boxes are mirrored along with its artwork — so the left one flips x too,
+ *  and both broadsides then read front-to-rear. The front panel is laid out its
+ *  own way and flips neither. */
 export function HullSectionFace({
   slots,
+  arc,
   shield,
   dice,
   width,
   height,
   panelRotation = 0,
-  mirrored = false,
 }: {
   /** This arc's own slot list, so the three sections tune independently. */
   slots: TokenSlot[]
+  /** Which section this is — it decides the mirroring, on the boxes and the dice. */
+  arc: 'front' | 'left' | 'right'
   shield: number
   dice: string
   width: number
   height: number
   /** How far the panel itself is turned, so the shield value can be turned back. */
   panelRotation?: number
-  mirrored?: boolean
 }) {
+  const mirrored = arc === 'left'
+  const broadside = arc !== 'front'
   return (
     <>
       <IconInSlot
@@ -167,7 +209,12 @@ export function HullSectionFace({
         rect={rectFor(slots, 'shield', width, height, mirrored)}
         panelRotation={panelRotation}
       />
-      <DiceInSlot dice={dice} rect={rectFor(slots, 'armament', width, height, mirrored)} />
+      <DiceInSlot
+        dice={dice}
+        rect={rectFor(slots, 'armament', width, height, mirrored)}
+        flipX={mirrored}
+        flipY={broadside}
+      />
     </>
   )
 }

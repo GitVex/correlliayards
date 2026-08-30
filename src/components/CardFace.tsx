@@ -64,8 +64,17 @@ function IconInBox({
 
 /** Renders one arc's dice cluster, anchored in its slot box. Dice keep their true
  *  size while the cluster fits; once it would spill out of the box (e.g. six dice
- *  in a row) the whole cluster is scaled down just enough to fit inside. */
-function DiceGroup({ slotKey, dice, rotateRight, rotateLeft }: { slotKey: string; dice: string; rotateRight?: boolean, rotateLeft?: boolean }) {
+ *  in a row) the whole cluster is scaled down just enough to fit inside.
+ *
+ *  `side` stands a broadside cluster on its edge. The left arc is the ground
+ *  truth for how a broadside reads — first row of the dice string innermost, dice
+ *  within a row running toward the rear, later rows stepping outward — and the
+ *  right arc is that same cluster mirrored across the ship's centre line. That
+ *  mirror is a quarter turn *plus* a flip, not the opposite quarter turn: turning
+ *  it the other way instead sends the first row outward and its dice forward.
+ *  The token repeats this layout at its own size — see DiceInSlot in
+ *  TokenFace.tsx. */
+function DiceGroup({ slotKey, dice, side }: { slotKey: string; dice: string; side?: 'left' | 'right' }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const clusterRef = useRef<HTMLDivElement>(null)
   // Mirrors `scale` so the measuring pass can undo the transform it already applied
@@ -77,7 +86,7 @@ function DiceGroup({ slotKey, dice, rotateRight, rotateLeft }: { slotKey: string
     const box = boxRef.current
     const cluster = clusterRef.current
     if (!box || !cluster) return;
-    const rotate = rotateRight || rotateLeft
+    const rotate = side !== undefined
 
     const fit = () => {
       const boxRect = box.getBoundingClientRect()
@@ -107,12 +116,15 @@ function DiceGroup({ slotKey, dice, rotateRight, rotateLeft }: { slotKey: string
     observer.observe(box)
     observer.observe(cluster)
     return () => observer.disconnect()
-  }, [dice, rotateRight, rotateLeft])
+  }, [dice, side])
 
   const style = boxStyle(slotKey, true)
   const rows = parseDiceRows(dice)
   if (!style || rows.length === 0) return null;
-  const rotation = rotateLeft ? 'rotate(90deg)' : rotateRight ? 'rotate(-90deg)' : ''
+  // Right = left, mirrored: scaleX(-1) is applied *outside* the same quarter turn
+  // the left arc gets. The dice art is a plain diamond, so the flip only moves
+  // dice around — it doesn't show up on any one of them.
+  const rotation = side === 'left' ? 'rotate(90deg)' : side === 'right' ? 'scaleX(-1) rotate(90deg)' : ''
 
   const transform = [scale < 1 ? `scale(${scale})` : '', rotation]
     .filter(Boolean)
@@ -147,10 +159,10 @@ function DiceGroup({ slotKey, dice, rotateRight, rotateLeft }: { slotKey: string
   )
 }
 
-/** A line of small print set on its side inside its slot box. Rotation follows the
- *  same convention as DiceGroup's side arcs: rotateLeft for the card's left edge
- *  (reads top-to-bottom), rotateRight for its right (reads bottom-to-top). The
- *  line sits at the far end of the strip rather than centred in it. */
+/** A line of small print set on its side inside its slot box: rotateLeft for the
+ *  card's left edge (reads top-to-bottom), rotateRight for its right (reads
+ *  bottom-to-top). The line sits at the far end of the strip rather than centred
+ *  in it. */
 function VerticalText({
   slotKey,
   text,
@@ -280,8 +292,8 @@ export function CardFace({ data, images }: { data: CardData; images: CardImages 
       ))}
 
       <DiceGroup slotKey="armamentFront" dice={data.armamentFront} />
-      <DiceGroup slotKey="armamentLeft" dice={data.armamentLeft} rotateLeft />
-      <DiceGroup slotKey="armamentRight" dice={data.armamentRight} rotateRight />
+      <DiceGroup slotKey="armamentLeft" dice={data.armamentLeft} side="left" />
+      <DiceGroup slotKey="armamentRight" dice={data.armamentRight} side="right" />
       <DiceGroup slotKey="armamentRear" dice={data.armamentRear} />
       <DiceGroup slotKey="armamentAntiSquadron" dice={data.armamentAntiSquadron} />
 

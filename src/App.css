@@ -3,35 +3,105 @@
    ============================================================ */
 .app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+/* Shared surface recipe for every chrome panel: fine grain over oxide blooms
+   over the panel's own gradient. `overlay` lets the grain darken and lighten
+   without tinting; `soft-light` beds the rust patches in without flattening the
+   gradient beneath. Panels that opt in must list their layers in this order.
+
+   Large surfaces only. Texture on a small control fights the thing the control
+   is trying to say — an accent colour reads as dirty, a label as low-contrast —
+   so buttons, chips and the pressed switch option stay smooth and let the plate
+   behind them carry the weathering. */
+.topbar, .editor, .tabs, .ptools, .preview {
+  background-blend-mode: overlay, soft-light, normal;
+}
+
 .topbar {
   height: var(--topbar-h);
   flex: 0 0 auto;
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 18px;
   padding: 0 16px;
-  background: linear-gradient(180deg, #161d27, #0f141c);
+  background-color: #221a13;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    linear-gradient(180deg, #2e2418 0%, #1b1510 100%);
   border-bottom: 1px solid var(--rule);
+  /* the lit lip of the plate, then the shadow it throws on the work below */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 160, .07),
+    0 2px 0 rgba(0, 0, 0, .45),
+    0 10px 18px -10px rgba(0, 0, 0, .8);
+}
+/* Rivets punched along the bottom edge. One radial gradient tiled horizontally:
+   a lit crown, a dark underside, transparent past the head. */
+.topbar::before {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 3px; height: 5px;
+  pointer-events: none; opacity: .5;
+  background-image: radial-gradient(closest-side,
+    rgba(255, 208, 150, .55) 0%, rgba(255, 208, 150, .34) 44%,
+    rgba(0, 0, 0, .7) 64%, transparent 100%);
+  background-size: 5px 5px;
+  background-repeat: repeat-x;
+  background-position: 13px 0;
+}
+/* Stains weeping down out of the seam onto whatever sits below. The texture
+   carries its own fade, so it thins out before it reaches any real content. */
+.topbar::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 100%; height: 44px;
+  pointer-events: none;
+  background-image: var(--tex-streak);
+  background-size: 600px 44px;
+  opacity: .28;
 }
 
-.brand { display: flex; align-items: baseline; gap: 8px; flex: 0 0 auto; }
+.brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.brand__logo {
+  flex: 0 0 auto;
+  color: var(--rust);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .7));
+}
 .brand__mark {
   font-family: var(--ff-display);
   font-weight: 700;
   font-size: 19px;
   letter-spacing: .16em;
   text-transform: uppercase;
-}
-.brand__note {
-  font-family: var(--ff-mono);
-  font-size: 10px;
-  color: var(--faint);
-  letter-spacing: .04em;
+  color: var(--chalk);
+  /* stencil paint on metal: cut in hard below, bleeding oxide above */
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .8), 0 -1px 0 rgba(194, 98, 44, .3);
 }
 
-/* card-type switch */
-.switch { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+/* card-type switch — a recessed slot in the plate with the selector sitting in it */
+.switch {
+  display: flex;
+  border: 1px solid var(--rule-hi);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, .3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .6);
+}
+/* No `overflow: hidden` here, deliberately — it would clip the tooltips that
+   hang below the disabled options. The end options round their own outer
+   corners instead, which is all the clipping was ever doing. An option may be
+   wrapped in a .tip, so each rule has to reach through that wrapper too. */
+.switch > :first-child,
+.switch > :first-child .switch__opt {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.switch > :last-child,
+.switch > :last-child .switch__opt {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
 .switch__opt {
+  display: flex; align-items: center; gap: 6px;
   font-family: var(--ff-display);
   font-size: 13px;
   letter-spacing: .1em;
@@ -41,27 +111,65 @@
   border-right: 1px solid var(--rule);
   transition: background .12s, color .12s;
 }
-.switch__opt:last-child { border-right: 0; }
-.switch__opt:hover { color: var(--chalk); background: var(--plate-hi); }
+/* The last option may be wrapped in a .tip, so the seam has to be cleared off
+   whichever element actually ends the row. */
+.switch > :last-child .switch__opt,
+.switch > .switch__opt:last-child { border-right: 0; }
+.switch__opt:hover:not(:disabled) { color: var(--chalk); background: var(--plate-hi); }
+/* Clean oxide, no grain: this is the one saturated surface in the chrome, and
+   noise over it just muddies both the colour and the label sitting on it. */
 .switch__opt[aria-pressed="true"] {
-  background: var(--ion);
-  color: #08161b;
+  background-color: var(--rust);
+  background-image: linear-gradient(180deg, var(--rust-hi), var(--rust));
+  color: var(--rust-ink);
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 180, .3);
 }
+/* Card types that aren't built yet: still readable, plainly not pressable. */
+.switch__opt:disabled { color: var(--faint); cursor: not-allowed; }
+.switch__wip { flex: 0 0 auto; opacity: .8; }
+
+/* Hover tooltip. It hangs off a wrapper rather than the control itself because a
+   disabled control takes no pointer events and so can never be hovered. */
+.tip { position: relative; display: flex; }
+.tip::before,
+.tip::after {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+  background: #120d09;
+}
+.tip::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 9px); left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  white-space: nowrap;
+  font-family: var(--ff-body);
+  font-size: 11px; letter-spacing: .02em; text-transform: none;
+  color: var(--chalk);
+  border: 1px solid var(--rule-hi);
+  border-radius: 3px;
+  padding: 5px 9px;
+  box-shadow: 0 10px 20px -8px rgba(0, 0, 0, .95);
+}
+/* the little pointer, a rotated square tucked under the bubble's top edge */
+.tip::before {
+  content: "";
+  position: absolute; top: calc(100% + 5px); left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  z-index: 21;
+  width: 8px; height: 8px;
+  border-left: 1px solid var(--rule-hi);
+  border-top: 1px solid var(--rule-hi);
+}
+.tip:hover::before, .tip:hover::after { opacity: 1; }
+/* The switch sits hard against the right edge of the topbar, so a centred
+   bubble would run off the window. These hang from their right edge instead;
+   the arrow stays centred on the option it belongs to. */
+.switch .tip::after { left: auto; right: 0; transform: none; }
 
 .topbar__spacer { flex: 1; }
-
-/* validity readout — the truthful bit of chrome */
-.readout {
-  display: flex; align-items: center; gap: 7px;
-  font-family: var(--ff-mono); font-size: 11px; color: var(--ash);
-  padding-right: 4px;
-}
-.readout__dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 0 3px rgba(217, 164, 65, .14);
-}
 
 .btn {
   font-family: var(--ff-display);
@@ -70,12 +178,23 @@
   border: 1px solid var(--rule-hi);
   border-radius: 3px;
   color: var(--chalk);
-  background: var(--plate);
-  transition: border-color .12s, background .12s;
+  background-color: var(--plate);
+  /* Just the gradient — oxide blooms on something this small read as smudges
+     rather than weathering, and they blur the edge against the plate behind. */
+  background-image: linear-gradient(180deg, #33271c, #201911);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09), 0 1px 2px rgba(0, 0, 0, .5);
+  transition: border-color .12s, color .12s, box-shadow .12s;
 }
-.btn:hover { border-color: var(--ion); background: var(--plate-hi); }
-.btn--primary { background: var(--ion); color: #08161b; border-color: var(--ion); font-weight: 600; }
-.btn--primary:hover { background: #63bcd1; border-color: #63bcd1; }
+.btn:hover {
+  border-color: var(--rust);
+  color: #fff5ea;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 160, .16),
+    0 0 0 1px rgba(194, 98, 44, .22),
+    0 1px 2px rgba(0, 0, 0, .5);
+}
+/* pressed = the plate sinks into its own shadow */
+.btn:active { box-shadow: inset 0 2px 5px rgba(0, 0, 0, .65); }
 
 /* ============================================================
    WORKSPACE
@@ -84,12 +203,38 @@
 
 /* ---------- EDITOR ---------- */
 .editor {
+  position: relative;
   border-right: 1px solid var(--rule);
-  background: var(--plate);
+  background-color: var(--plate);
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    linear-gradient(104deg, #241c14 0%, #1a140e 64%);
   display: flex; flex-direction: column; min-height: 0;
 }
+/* Rivets down the plate's outer edge — the left, clear of the scroll gutter. */
+.editor::after {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 3px; width: 5px;
+  pointer-events: none; opacity: .42;
+  background-image: radial-gradient(closest-side,
+    rgba(255, 208, 150, .5) 0%, rgba(255, 208, 150, .3) 44%,
+    rgba(0, 0, 0, .65) 64%, transparent 100%);
+  background-size: 5px 5px;
+  background-repeat: repeat-y;
+  background-position: 0 18px;
+}
 
-.tabs { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--rule); background: #111721; }
+.tabs {
+  display: flex; flex: 0 0 auto;
+  border-bottom: 1px solid var(--rule);
+  background-color: #191309;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    linear-gradient(180deg, #241c14, #17110c);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .4);
+}
 .tab {
   font-family: var(--ff-display);
   font-size: 13px; letter-spacing: .11em; text-transform: uppercase;
@@ -99,11 +244,16 @@
   margin-bottom: -1px;
 }
 .tab:hover { color: var(--ash); }
-.tab[aria-selected="true"] { color: var(--chalk); border-bottom-color: var(--ion); }
+.tab[aria-selected="true"] {
+  color: var(--chalk);
+  border-bottom-color: var(--rust);
+  text-shadow: 0 0 14px rgba(194, 98, 44, .55);
+}
 
 .editor__scroll { flex: 1; overflow-y: auto; padding: 4px 0 40px; }
 .editor__scroll::-webkit-scrollbar { width: 10px; }
-.editor__scroll::-webkit-scrollbar-thumb { background: var(--rule); border: 3px solid var(--plate); border-radius: 5px; }
+.editor__scroll::-webkit-scrollbar-thumb { background: var(--rule-hi); border: 3px solid var(--plate); border-radius: 5px; }
+.editor__scroll::-webkit-scrollbar-thumb:hover { background: #6b5136; }
 
 /* the JSON tab's dump — long armament rows scroll sideways rather than wrap,
    so the shape of the document stays readable */
@@ -148,15 +298,16 @@
 }
 .field {
   width: 100%;
-  background: #0d1219;
+  background: #120d08;
   border: 1px solid var(--rule);
   border-radius: 2px;
   padding: 6px 9px;
   font-size: 12.5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55);
   transition: border-color .12s;
 }
 .field:hover { border-color: var(--rule-hi); }
-.field:focus { outline: none; border-color: var(--ion); }
+.field:focus { outline: none; border-color: var(--rust); }
 .field--num { font-family: var(--ff-mono); text-align: center; padding: 6px 4px; }
 textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 
@@ -173,20 +324,20 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 .check__box {
   flex: 0 0 auto;
   width: 15px; height: 15px; border-radius: 2px;
-  border: 1px solid var(--rule-hi); background: #0d1219;
+  border: 1px solid var(--rule-hi); background: #120d08;
   transition: border-color .12s, background .12s;
 }
-.check:hover .check__box { border-color: var(--ion); }
+.check:hover .check__box { border-color: var(--rust); }
 .check input:checked + .check__box {
-  background: var(--ion); border-color: var(--ion);
+  background: var(--rust); border-color: var(--rust);
   /* tick, drawn rather than shipped as an asset */
-  background-image: linear-gradient(45deg, transparent 44%, #0b0e13 44%, #0b0e13 56%, transparent 56%),
-                    linear-gradient(-45deg, transparent 44%, #0b0e13 44%, #0b0e13 56%, transparent 56%);
+  background-image: linear-gradient(45deg, transparent 44%, var(--rust-ink) 44%, var(--rust-ink) 56%, transparent 56%),
+                    linear-gradient(-45deg, transparent 44%, var(--rust-ink) 44%, var(--rust-ink) 56%, transparent 56%);
   background-size: 9px 2px, 5px 2px;
   background-position: 5px 8px, 2.5px 7px;
   background-repeat: no-repeat;
 }
-.check input:focus-visible + .check__box { outline: 2px solid var(--ion); outline-offset: 2px; }
+.check input:focus-visible + .check__box { outline: 2px solid var(--rust); outline-offset: 2px; }
 .check__hint { font-size: 11px; color: var(--faint); line-height: 1.35; }
 
 /* image pickers in the artwork group */
@@ -199,7 +350,7 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   color: var(--ash); cursor: pointer;
   transition: border-color .12s, color .12s;
 }
-.filepick__btn:hover { border-color: var(--ion); color: var(--chalk); }
+.filepick__btn:hover { border-color: var(--rust); color: var(--chalk); }
 .filepick__btn input { display: none; }
 .filepick__name {
   flex: 1 1 auto; min-width: 0;
@@ -237,33 +388,26 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   font-size: 12px; letter-spacing: .07em; text-transform: uppercase;
   padding: 3px 9px; border: 1px solid var(--rule); border-radius: 11px; color: var(--ash);
 }
-.chip[data-on="true"] { border-color: var(--ion); color: var(--ion); background: rgba(79, 168, 190, .09); }
+.chip[data-on="true"] { border-color: var(--rust); color: var(--rust); background: rgba(194, 98, 44, .12); }
 .chip--add { border-style: dashed; color: var(--faint); }
-
-/* validation strip at the foot of the editor */
-.flags { flex: 0 0 auto; border-top: 1px solid var(--rule); background: #111721; padding: 9px 16px; }
-.flag { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; line-height: 1.4; }
-.flag__tag {
-  font-family: var(--ff-mono); font-size: 9.5px; letter-spacing: .06em;
-  padding: 1px 5px; border-radius: 2px; flex: 0 0 auto; margin-top: 1px;
-  background: rgba(217, 164, 65, .16); color: var(--amber);
-}
-.flag__msg { color: var(--ash); }
-.flag__msg b { color: var(--chalk); font-weight: 600; }
 
 /* ---------- PREVIEW ---------- */
 .preview {
   position: relative; min-height: 0;
   display: flex; flex-direction: column;
-  background: radial-gradient(120% 90% at 50% 0%, #141b26 0%, #0b0e13 62%);
+  background-color: #16110c;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    radial-gradient(120% 90% at 50% 0%, #2b2117 0%, #130f0a 62%);
 }
 /* faint grid, like a play mat under the pieces */
 .preview::before {
   content: "";
   position: absolute; inset: 0; pointer-events: none;
   background-image:
-    linear-gradient(rgba(126, 140, 160, .045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(126, 140, 160, .045) 1px, transparent 1px);
+    linear-gradient(rgba(226, 178, 120, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 178, 120, .05) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(78% 62% at 50% 42%, #000 20%, transparent 100%);
 }
@@ -396,10 +540,10 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   cursor: grab; touch-action: none;
   transition: fill .12s, stroke .12s;
 }
-.arc-handle:hover { fill: var(--ion); }
-.arc-handle[data-grabbed="true"] { fill: var(--ion); stroke: #fff; cursor: grabbing; }
+.arc-handle:hover { fill: var(--rust); }
+.arc-handle[data-grabbed="true"] { fill: var(--rust); stroke: #fff; cursor: grabbing; }
 /* pivots ride the centre axis, so they only move up and down */
-.arc-handle--pivot { fill: rgba(79, 168, 190, .34); cursor: ns-resize; }
+.arc-handle--pivot { fill: rgba(194, 98, 44, .34); cursor: ns-resize; }
 .arc-handle--pivot[data-grabbed="true"] { cursor: ns-resize; }
 
 /* stage captions */
@@ -414,11 +558,16 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   display: flex; align-items: center; gap: 10px;
   padding: 9px 16px;
   border-top: 1px solid var(--rule);
-  background: #0f141c;
+  background-color: #191309;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    linear-gradient(180deg, #241c14, #16110c);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .06);
 }
 .zoom { display: flex; align-items: center; gap: 9px; }
 .zoom__range {
-  width: 140px; accent-color: var(--ion);
+  width: 140px; accent-color: var(--rust);
 }
 .zoom__pct {
   font-family: var(--ff-mono); font-size: 11px; color: var(--ash);
@@ -436,7 +585,7 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   .stage { padding: 26px 16px; }
 }
 @media (max-width: 560px) {
-  .brand__note, .dims { display: none; }
+  .dims { display: none; }
   .card-frame { width: 100%; max-width: 69mm; }
   .card-image { max-width: 100%; }
   .token-image { max-width: 100%; }

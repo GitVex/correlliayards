@@ -1,0 +1,13 @@
+services:
+  corelliayards:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_CORELLIAYARDS_8300
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8300/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

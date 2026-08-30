@@ -74,18 +74,20 @@ function HullSection({
   placement,
   panelHeight,
   slots,
+  arc,
   shield,
   dice,
-  mirrored = false,
 }: {
   placement: PanelPlacement
   panelHeight: number
   /** This arc's own slot list — see TokenSlots.tsx, one per section. */
   slots: TokenSlot[]
+  /** Which section this is. The left one is the mirrored panel. */
+  arc: 'front' | 'left' | 'right'
   shield: number
   dice: string
-  mirrored?: boolean
 }) {
+  const mirrored = arc === 'left'
   return (
     <g transform={panelTransform(placement, HULL_SECTION_MM)}>
       <g transform={mirrored ? `translate(${HULL_SECTION_MM} 0) scale(-1 1)` : undefined}>
@@ -93,12 +95,12 @@ function HullSection({
       </g>
       <HullSectionFace
         slots={slots}
+        arc={arc}
         shield={shield}
         dice={dice}
         width={HULL_SECTION_MM}
         height={panelHeight}
         panelRotation={placement.rotation}
-        mirrored={mirrored}
       />
       <TokenSlotGuides slots={slots} width={HULL_SECTION_MM} height={panelHeight} mirrored={mirrored} />
     </g>
@@ -192,18 +194,18 @@ export function TokenRenderer({
             way, which would stand its shield value on its head. */}
         <HullSection
           placement={frontPanel} panelHeight={sectionHeight}
-          slots={FRONT_SECTION_SLOTS}
+          slots={FRONT_SECTION_SLOTS} arc="front"
           shield={cardData.shieldFront} dice={cardData.armamentFront}
         />
         <HullSection
           placement={rightPanel} panelHeight={sectionHeight}
-          slots={RIGHT_SECTION_SLOTS}
+          slots={RIGHT_SECTION_SLOTS} arc="right"
           shield={cardData.shieldRight} dice={cardData.armamentRight}
         />
         <HullSection
           placement={leftPanel} panelHeight={sectionHeight}
-          slots={LEFT_SECTION_SLOTS}
-          shield={cardData.shieldLeft} dice={cardData.armamentLeft} mirrored
+          slots={LEFT_SECTION_SLOTS} arc="left"
+          shield={cardData.shieldLeft} dice={cardData.armamentLeft}
         />
 
         <g transform={`translate(${width / 2 - HULL_FOOTER_MM / 2} ${height - footerHeight})`}>
