@@ -12,7 +12,7 @@
 // TOKEN_SLOTS is for anything pinned to the token itself instead.
 // ---------------------------------------------------------------------------
 
-export const SHOW_TOKEN_GUIDES = true
+export const SHOW_TOKEN_GUIDES = false
 
 export type TokenSlotBox = {
   leftPct: number
@@ -45,6 +45,7 @@ export const ICON_PAD_MM = (2.5 * 25.4) / 96
 // end of the panel on every section.
 
 /** Front arc, the panel across the top of the token. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const FRONT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
     box: { leftPct: 7.93, topPct: 16.9, widthPct: 26.7, heightPct: 42 } },
@@ -54,6 +55,7 @@ export const FRONT_SECTION_SLOTS: TokenSlot[] = [
 ]
 
 /** Right arc. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const RIGHT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
     box: { leftPct: 8.7, topPct: 18, widthPct: 24.7, heightPct: 42 } },
@@ -62,6 +64,7 @@ export const RIGHT_SECTION_SLOTS: TokenSlot[] = [
 ]
 
 /** Left arc — drawn mirrored, tuned unmirrored. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const LEFT_SECTION_SLOTS: TokenSlot[] = [
   { key: 'shield', label: 'Shield', kind: 'icon', padMm: ICON_PAD_MM,
     box: { leftPct: 7.93, topPct: 19, widthPct: 26.7, heightPct: 42 } },
@@ -71,6 +74,7 @@ export const LEFT_SECTION_SLOTS: TokenSlot[] = [
 
 /** Percentages of the footer panel at the foot of the centre axis, read off
  *  blank_hull_footer.png. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const HULL_FOOTER_SLOTS: TokenSlot[] = [
   { key: 'armamentAntiSquadron', label: 'A1', kind: 'icon',
     box: { leftPct: 16, topPct: 42, widthPct: 10, heightPct: 37 } },
@@ -83,6 +87,7 @@ export const HULL_FOOTER_SLOTS: TokenSlot[] = [
 ]
 
 /** Percentages of the whole token, for anything that isn't inside a panel. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const TOKEN_SLOTS: TokenSlot[] = [
   { key: 'shipClass', label: 'Ship class', kind: 'text',
     box: { leftPct: 3, topPct: 78, widthPct: 94, heightPct: 6.8 },
@@ -94,6 +99,7 @@ export const TOKEN_SLOTS: TokenSlot[] = [
 
 /** Shared lookup, the one source of truth for position that a face component
  *  reads to paint the real icons and text. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getTokenSlot(slots: TokenSlot[], key: string): TokenSlot | undefined {
   return slots.find((slot) => slot.key === key)
 }
@@ -104,6 +110,7 @@ export function getTokenSlot(slots: TokenSlot[], key: string): TokenSlot | undef
  *
  *  `mirrored` flips it horizontally, for the left-hand hull section whose artwork
  *  is mirrored — the box moves with the art, whatever is drawn in it need not. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function tokenSlotRect(slot: TokenSlot, width: number, height: number, mirrored = false) {
   const { box } = slot
   const w = (box.widthPct / 100) * width
