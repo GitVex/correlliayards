@@ -1,5 +1,5 @@
-import imperialCardBg from '../assets/base_cards/Imperial.png'
-import rebelCardBg from '../assets/base_cards/Rebel.png'
+import imperialCardBg from '../../../../src/assets/base_cards/Imperial.png'
+import rebelCardBg from '../../../../src/assets/base_cards/Rebel.png'
 import { CardSlots } from './CardSlots'
 import { CardFace } from './CardFace'
 import type { CardData } from '../cardData'

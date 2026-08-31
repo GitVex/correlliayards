@@ -5,6 +5,13 @@ stats on the left, and the right-hand stage renders the printable ship card and
 its matching base token live, at true physical size (69 × 89 mm card, base
 tokens per size class). The same definition can be read back out as JSON.
 
+## Stack Info:
+Web: Vite + React + TS
+API: FastAPI
+DB: Postgres
+
+Token-Handling: Public client + PKCE
+
 ## Running it
 
 ```
