@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import shipNameBackdrop from '../../../../src/assets/base_tokens/blank_ship_name_slot.png'
+import shipNameBackdrop from '../assets/base_tokens/blank_ship_name_slot.png'
 import { parseDiceRows, type CardData, type DiceLetter } from '../cardData'
 import type { CardImages } from '../cardImages'
 import { DICE_ICON, HULL_ICON, SHIELD_ICON } from '../icons'
