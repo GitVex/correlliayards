@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import './App.css'
 import { Topbar } from './components/Topbar'
 import { Stage } from './components/Stage'
+import { ExportStage } from './components/ExportStage'
+import { ExportControls } from './components/ExportControls'
 import { Editor } from './components/Editor'
 import type { Faction } from './components/CardRenderer'
 import { TOKEN_SIZE_MM, type BaseSize } from './components/TokenRenderer'
@@ -9,6 +11,7 @@ import { DEFAULT_CARD_DATA, type CardData } from './cardData'
 import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from './cardImages'
 import { DEFAULT_FIRING_ARCS, type FiringArcs } from './firingArcs'
 import { cardJson } from './cardJson'
+import { EXPORT_SCALE } from './exportPieces'
 
 const MIN_ZOOM = 25
 const MAX_ZOOM = 300
@@ -20,6 +23,11 @@ function App() {
   const [cardData, setCardData] = useState<CardData>(DEFAULT_CARD_DATA)
   const [images, setImages] = useState<CardImages>(EMPTY_CARD_IMAGES)
   const [arcs, setArcs] = useState<FiringArcs>(DEFAULT_FIRING_ARCS)
+
+  /** The two nodes every export reads — see ExportStage.tsx for why they aren't
+   *  the ones the preview is showing. */
+  const exportCardRef = useRef<HTMLDivElement>(null)
+  const exportTokenRef = useRef<HTMLDivElement>(null)
 
   /** What the copy button last did, so it can say so and then go quiet again. */
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle')
@@ -47,60 +55,76 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <Topbar />
+    <>
+      <div className="app">
+        <Topbar />
 
-      <div className="workspace">
-        <Editor
-          faction={faction}
-          setFaction={setFaction}
-          baseSize={baseSize}
-          setBaseSize={setBaseSize}
-          cardData={cardData}
-          setCardData={setCardData}
-          images={images}
-          setImage={setImage}
-          arcs={arcs}
-          setArcs={setArcs}
-        />
-
-        {/* ===================== PREVIEW ===================== */}
-        <section className="preview" aria-label="Preview">
-          <Stage
+        <div className="workspace">
+          <Editor
             faction={faction}
+            setFaction={setFaction}
             baseSize={baseSize}
-            zoom={zoom}
+            setBaseSize={setBaseSize}
             cardData={cardData}
+            setCardData={setCardData}
             images={images}
+            setImage={setImage}
             arcs={arcs}
             setArcs={setArcs}
           />
 
-          <div className="ptools">
-            <div className="zoom" role="group" aria-label="Zoom">
-              <input
-                className="zoom__range"
-                type="range"
-                min={MIN_ZOOM}
-                max={MAX_ZOOM}
-                step={5}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                aria-label="Zoom level"
-              />
-              <span className="zoom__pct">{zoom}%</span>
+          {/* ===================== PREVIEW ===================== */}
+          <section className="preview" aria-label="Preview">
+            <Stage
+              faction={faction}
+              baseSize={baseSize}
+              zoom={zoom}
+              cardData={cardData}
+              images={images}
+              arcs={arcs}
+              setArcs={setArcs}
+            />
+
+            <div className="ptools">
+              <div className="zoom" role="group" aria-label="Zoom">
+                <input
+                  className="zoom__range"
+                  type="range"
+                  min={MIN_ZOOM}
+                  max={MAX_ZOOM}
+                  step={5}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  aria-label="Zoom level"
+                />
+                <span className="zoom__pct">{zoom}%</span>
+              </div>
+              <span className="dims">
+                card 69 × 89 mm · token {TOKEN_SIZE_MM[baseSize].width} × {TOKEN_SIZE_MM[baseSize].height} mm · export @{' '}
+                {EXPORT_SCALE}×
+              </span>
+              <div className="ptools__spacer" />
+              <button className="btn" onClick={copyJson}>
+                {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
+              </button>
+              <ExportControls cardRef={exportCardRef} tokenRef={exportTokenRef} shipClass={cardData.shipClass} />
             </div>
-            <span className="dims">
-              card 69 × 89 mm · token {TOKEN_SIZE_MM[baseSize].width} × {TOKEN_SIZE_MM[baseSize].height} mm · export @ 4×
-            </span>
-            <div className="ptools__spacer" />
-            <button className="btn" onClick={copyJson}>
-              {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
-            </button>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
-    </div>
+
+      {/* Outside .app on purpose: .app is a clipped 100vh column, and the print
+          stylesheet has to be able to hide the whole of it and let this through. */}
+      <ExportStage
+        cardRef={exportCardRef}
+        tokenRef={exportTokenRef}
+        faction={faction}
+        baseSize={baseSize}
+        cardData={cardData}
+        images={images}
+        arcs={arcs}
+      />
+    </>
   )
 }
 

@@ -517,26 +517,27 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 
 /* firing-arc overlay — coordinates are the token's own mm, so stroke widths
-   below are millimetres too and stay true at any zoom */
+   are millimetres too and stay true at any zoom. The boundary lines colour
+   themselves from ARC_INK in TokenRenderer.tsx; only the handles are styled
+   here, and they never leave the preview. */
 .token-arcs {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   overflow: visible;
+  /* The typeface for every bit of text inside, set here on the root rather than
+     on the text itself. An export clones this SVG as bare markup and keeps a
+     copied computed style on the root alone, so this is the one place a typeface
+     can be stated and still be inherited by the text once the stylesheet is
+     gone. The fill each piece of text wants, it carries itself. */
+  font-family: var(--ff-card);
 }
 .arc-lines, .hull-panel, .token-face { pointer-events: none; }
-/* The ship name printed on the token — same typeface and ink as the card face,
-   which sets --ff-card on .card-art. SVG text inherits neither, so it says so. */
-.token-name { font-family: var(--ff-card); fill: #111; }
-/* Arc colour is the faction's: green for the Empire, red for the Alliance. The
-   core stays a near-white tinted towards the glow, so the line reads as one beam. */
-.token-frame { --arc-glow: #ff3b30; --arc-core: #ffecec; }
-.token-frame[data-faction="Galactic Empire"] { --arc-glow: #3ce05a; --arc-core: #ecffee; }
-.token-frame[data-faction="Rebel Alliance"] { --arc-glow: #ff3b30; --arc-core: #ffecec; }
-.arc-line__glow { stroke: var(--arc-glow); stroke-width: .9; opacity: .38; stroke-linecap: round; }
-.arc-line__core { stroke: var(--arc-core); stroke-width: .32; stroke-linecap: round; }
+/* A handle is outlined in the same near-white core its boundary line is drawn
+   in, handed to it by TokenRenderer — so the faction's ink is stated once, in
+   ARC_INK, and only the states that need a stylesheet are here. */
 .arc-handle {
   fill: rgba(11, 14, 19, .82);
-  stroke: var(--arc-core); stroke-width: .3;
+  stroke-width: .3;
   cursor: grab; touch-action: none;
   transition: fill .12s, stroke .12s;
 }
@@ -575,6 +576,11 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 .dims { font-family: var(--ff-mono); font-size: 10.5px; color: var(--faint); letter-spacing: .03em; }
 .ptools__spacer { flex: 1; }
+/* The three ways off the screen. They share the toolbar with Copy JSON, so they
+   keep .btn and only need to sit together and dim while one of them is busy. */
+.export { display: flex; align-items: center; gap: 6px; }
+.btn:disabled { opacity: .55; cursor: default; border-color: var(--rule); color: var(--ash); }
+.btn:disabled:hover { border-color: var(--rule); color: var(--ash); box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09), 0 1px 2px rgba(0, 0, 0, .5); }
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1020px) {
@@ -589,4 +595,55 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   .card-frame { width: 100%; max-width: 69mm; }
   .card-image { max-width: 100%; }
   .token-image { max-width: 100%; }
+}
+
+/* ---------- EXPORT STAGE ---------- */
+/* The un-zoomed, chrome-free copy of both pieces that every export and the print
+   sheet are taken from — see ExportStage.tsx. Parked off to the side rather than
+   display:none, which would collapse it to zero and take its measurements with
+   it. Fixed positioning keeps it out of the document flow, so it can't add
+   scrollbars of its own. */
+.export-stage {
+  position: fixed; top: 0; left: -300vw;
+  display: flex; align-items: flex-start; gap: 10mm;
+  pointer-events: none;
+}
+/* Each piece's own mm box, shrink-wrapped: its offsetWidth is the printed width
+   the PDF places it at. */
+.export-piece { flex: 0 0 auto; }
+
+/* The editor's furniture inside the pieces — the arc handles and the slot
+   guides — isn't hidden here. It can't be: those live in the token's SVG, and a
+   clone of that SVG brings its children along whatever a stylesheet says, then
+   paints them in SVG's own defaults once the stylesheet is gone. They're not
+   rendered at all instead — see the chrome prop on TokenRenderer.
+
+   What is left here is HTML, where hiding works, because html-to-image copies
+   each element's computed style onto its clone.
+
+   The plate is the table the card is lying on. Printing it would put a dark
+   rectangle around a card that is meant to be cut out. */
+.export-stage .card-placeholder { display: none; }
+/* Same reasoning for the shadows: they're the preview's lighting. */
+.export-stage .token-image { box-shadow: none; }
+
+/* ---------- PRINT ---------- */
+/* Printing hands the export stage to the browser as-is rather than rasterising
+   anything, so what comes out is live text and full-resolution artwork. All this
+   has to do is hide the app and unpark the stage. */
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body {
+    height: auto;
+    background: #fff;
+    background-image: none;
+  }
+  .app { display: none !important; }
+  .export-stage {
+    position: static; top: auto; left: auto;
+    /* The pieces are printed to be cut out, so their ink is not decoration the
+       browser may drop along with the page background. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

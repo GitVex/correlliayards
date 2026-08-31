@@ -243,8 +243,10 @@ function InvertFilter() {
  *  squeeze — leaves the glow showing above and below the letters. */
 const NAME_HEIGHT_SHARE = 0.62
 
-/** The ship name across the backdrop band, centred both ways and in the card's
- *  own typeface (--ff-card, applied by .token-name in App.css).
+/** The ship name across the backdrop band, centred both ways. The typeface is
+ *  the card's own, inherited from .token-arcs — see the note there for why it
+ *  can't be set on the text itself. The ink it does carry, since an export would
+ *  otherwise fall back to SVG's plain black.
  *
  *  Size comes off the band's height, so it scales with the base; a name too long
  *  for the band is then squeezed to fit by a transform rather than by shrinking
@@ -279,7 +281,8 @@ function ShipName({ name, rect }: { name: string; rect: Rect | null }) {
   return (
     <text
       ref={textRef}
-      className="token-face token-name"
+      className="token-face"
+      fill="#111"
       x={cx}
       y={cy}
       fontSize={rect.height * NAME_HEIGHT_SHARE}
