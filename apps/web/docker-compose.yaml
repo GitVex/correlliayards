@@ -1,8 +1,11 @@
 services:
   corelliayards:
     build:
-      context: .
-      dockerfile: Dockerfile
+      # The repo root, not this directory. The Dockerfile installs from the
+      # workspace lockfile, which lives one level up — a context of `.` cannot
+      # see it, or packages/shared.
+      context: ..
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_CORELLIAYARDS_8300

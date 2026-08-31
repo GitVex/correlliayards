@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cygwin/Git-Bash crash dumps
+*.stackdump

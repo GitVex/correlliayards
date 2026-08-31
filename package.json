@@ -1,0 +1,16 @@
+{
+  "name": "correlliayards-root",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web",
+    "preview": "npm run preview --workspace=apps/web",
+    "db:up": "docker compose -f docker-compose.dev.yaml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yaml down"
+  }
+}
