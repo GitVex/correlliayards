@@ -15,14 +15,18 @@ SPA calls the API directly. A BFF would be stricter, but this is card layouts,
 not data where a leaked ten-minute access token is an incident. Migrating to a
 BFF later is mostly an Authentik provider change, so the door stays open.
 
-**API — FastAPI.** The SPA is TypeScript, so a TS API would share types
-directly; Python wins anyway on familiarity here. The cost is that
-`packages/shared` can only be the contract for one side, so the Python models
-have to be kept in step with it deliberately rather than by the compiler.
+**API — Fastify, TypeScript.** Same language as the SPA, which is the whole
+reason this is one repo: `packages/shared` is a real compile-time contract for
+both sides, so a change to a domain type fails the build on whichever half
+hasn't caught up instead of drifting silently. Token verification uses `jose`
+against Authentik's JWKS.
 
-**Database — Postgres.** One saveable resource per user, stored as a versioned
-`jsonb` blob. Nothing about the shape needs more than that, and `jsonb` leaves
-room to query inside the blob later without a migration.
+**Database — Postgres, provisioned as a Coolify resource** in each environment
+rather than run from compose in this repo. One saveable resource per user,
+stored as a versioned `jsonb` blob; nothing about the shape needs more than
+that, and `jsonb` leaves room to query inside the blob later without a
+migration. The API takes its connection string from the environment, so the
+repo never holds credentials for either environment.
 
 **Environments — `local` and `prod`, with a separate Authentik provider and
 client ID for each.** Sharing one provider means a single redirect-URI list
@@ -41,14 +45,13 @@ npm run dev
 ```
 
 `npm run build` type-checks and produces a static bundle in `apps/web/dist/`.
-Both scripts are root-level shortcuts into the `apps/web` workspace. Local
-Postgres, for when the API exists, is `npm run db:up`.
+Both scripts are root-level shortcuts into the `apps/web` workspace.
 
 ## Layout
 
 ```
 apps/web/          the SPA
-apps/api/          FastAPI service (empty; a later phase)
+apps/api/          Fastify service (empty; a later phase)
 packages/shared/   domain types and version constants, imported not copied
 package-lock.json  one lockfile, at the root, for every workspace
 ```
