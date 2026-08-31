@@ -34,6 +34,20 @@ import {
 
 export type BaseSize = 'Small' | 'Medium' | 'Large'
 
+/** Firing-arc ink, by faction: a wide soft pass for the glow, a thin bright one
+ *  over it for the core.
+ *
+ *  These are here rather than in App.css because the token has to carry its own
+ *  paint. Exporting clones the token's SVG as bare markup — only the <svg>
+ *  element itself keeps a copy of its computed style, so anything a stylesheet
+ *  paints *inside* it is simply not there any more. Whatever the SVG draws, the
+ *  SVG says. The same goes for every stroke width below: the root's inherited
+ *  default is 1 user unit, which out here is a millimetre. */
+const ARC_INK: Record<Faction, { glow: string; core: string }> = {
+  'Galactic Empire': { glow: '#3ce05a', core: '#ecffee' },
+  'Rebel Alliance': { glow: '#ff3b30', core: '#ffecec' },
+}
+
 const TOKEN_IMG: Record<BaseSize, string> = {
   Small: smallToken,
   Medium: mediumToken,
@@ -77,6 +91,7 @@ function HullSection({
   arc,
   shield,
   dice,
+  guides,
 }: {
   placement: PanelPlacement
   panelHeight: number
@@ -86,6 +101,7 @@ function HullSection({
   arc: 'front' | 'left' | 'right'
   shield: number
   dice: string
+  guides: boolean
 }) {
   const mirrored = arc === 'left'
   return (
@@ -102,7 +118,9 @@ function HullSection({
         height={panelHeight}
         panelRotation={placement.rotation}
       />
-      <TokenSlotGuides slots={slots} width={HULL_SECTION_MM} height={panelHeight} mirrored={mirrored} />
+      {guides && (
+        <TokenSlotGuides slots={slots} width={HULL_SECTION_MM} height={panelHeight} mirrored={mirrored} />
+      )}
     </g>
   )
 }
@@ -117,17 +135,25 @@ export function TokenRenderer({
   images,
   arcs,
   setArcs,
+  chrome = true,
 }: {
   baseSize: BaseSize
-  /** Only reaches CSS, which colours the firing arcs by it. */
+  /** Picks the firing arcs' colour. */
   faction: Faction
   cardData: CardData
   /** The user-supplied artwork — the token only uses the tinycon. */
   images: CardImages
   arcs: FiringArcs
   setArcs: (updater: (arcs: FiringArcs) => FiringArcs) => void
+  /** The editing furniture: the draggable arc handles and the slot guides. The
+   *  export copy turns it off, and has to — hiding it with CSS wouldn't do,
+   *  since a clone of this SVG brings its children along whatever the stylesheet
+   *  says about them, and without the stylesheet they'd paint in SVG's own
+   *  defaults. A black disc where a handle used to be. */
+  chrome?: boolean
 }) {
   const { width, height } = TOKEN_SIZE_MM[baseSize]
+  const ink = ARC_INK[faction]
   const svgRef = useRef<SVGSVGElement>(null)
   const [grabbed, setGrabbed] = useState<Grabbed>(null)
 
@@ -175,7 +201,7 @@ export function TokenRenderer({
   }
 
   return (
-    <div className="token-frame" data-faction={faction} style={{ width: `${width}mm`, height: `${height}mm` }}>
+    <div className="token-frame" style={{ width: `${width}mm`, height: `${height}mm` }}>
       <img className="token-image" src={TOKEN_IMG[baseSize]} alt={`${baseSize} base token`} />
 
       <svg
@@ -194,90 +220,107 @@ export function TokenRenderer({
             way, which would stand its shield value on its head. */}
         <HullSection
           placement={frontPanel} panelHeight={sectionHeight}
-          slots={FRONT_SECTION_SLOTS} arc="front"
+          slots={FRONT_SECTION_SLOTS} arc="front" guides={chrome}
           shield={cardData.shieldFront} dice={cardData.armamentFront}
         />
         <HullSection
           placement={rightPanel} panelHeight={sectionHeight}
-          slots={RIGHT_SECTION_SLOTS} arc="right"
+          slots={RIGHT_SECTION_SLOTS} arc="right" guides={chrome}
           shield={cardData.shieldRight} dice={cardData.armamentRight}
         />
         <HullSection
           placement={leftPanel} panelHeight={sectionHeight}
-          slots={LEFT_SECTION_SLOTS} arc="left"
+          slots={LEFT_SECTION_SLOTS} arc="left" guides={chrome}
           shield={cardData.shieldLeft} dice={cardData.armamentLeft}
         />
 
         <g transform={`translate(${width / 2 - HULL_FOOTER_MM / 2} ${height - footerHeight})`}>
           <image className="hull-panel" href={hullFooter} x={0} y={0} width={HULL_FOOTER_MM} height={footerHeight} />
           <HullFooterFace data={cardData} width={HULL_FOOTER_MM} height={footerHeight} />
-          <TokenSlotGuides slots={HULL_FOOTER_SLOTS} width={HULL_FOOTER_MM} height={footerHeight} />
+          {chrome && (
+            <TokenSlotGuides slots={HULL_FOOTER_SLOTS} width={HULL_FOOTER_MM} height={footerHeight} />
+          )}
         </g>
 
-        <TokenSlotGuides slots={TOKEN_SLOTS} width={width} height={height} />
+        {chrome && <TokenSlotGuides slots={TOKEN_SLOTS} width={width} height={height} />}
 
         {/* Boundaries draw over the panels, the way they're printed on the token.
             Each is drawn twice: a wide soft pass for the glow, a thin bright one
             for the core. */}
         <g className="arc-lines">
           {lines.map((line, i) => (
-            <line key={i} x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y} className="arc-line__glow" />
+            <line
+              key={i} x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}
+              stroke={ink.glow} strokeWidth={0.9} strokeOpacity={0.38} strokeLinecap="round"
+            />
           ))}
           {lines.map((line, i) => (
-            <line key={i} x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y} className="arc-line__core" />
+            <line
+              key={i} x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}
+              stroke={ink.core} strokeWidth={0.32} strokeLinecap="round"
+            />
           ))}
         </g>
 
-        {points.map((point, i) => (
-          <circle
-            key={i}
-            className="arc-handle"
-            data-grabbed={grabbed === i}
-            cx={point.x}
-            cy={point.y}
-            r={1.6}
-            aria-label={`${ARC_HANDLE_LABELS[i]} arc boundary`}
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId)
-              setGrabbed(i)
-            }}
-            onPointerMove={(e) => {
-              if (grabbed === i) dragEdgeHandle(i, e.clientX, e.clientY)
-            }}
-            onPointerUp={(e) => {
-              e.currentTarget.releasePointerCapture(e.pointerId)
-              setGrabbed(null)
-            }}
-            onPointerCancel={() => setGrabbed(null)}
-          />
-        ))}
+        {/* Everything below is what makes the arcs draggable, and only the
+            preview gets it. The export copy leaves it unrendered rather than
+            hidden — see the chrome prop. */}
+        {chrome && (
+          <>
+            {points.map((point, i) => (
+              <circle
+                key={i}
+                className="arc-handle"
+                data-grabbed={grabbed === i}
+                stroke={ink.core}
+                cx={point.x}
+                cy={point.y}
+                r={1.6}
+                aria-label={`${ARC_HANDLE_LABELS[i]} arc boundary`}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                  setGrabbed(i)
+                }}
+                onPointerMove={(e) => {
+                  if (grabbed === i) dragEdgeHandle(i, e.clientX, e.clientY)
+                }}
+                onPointerUp={(e) => {
+                  e.currentTarget.releasePointerCapture(e.pointerId)
+                  setGrabbed(null)
+                }}
+                onPointerCancel={() => setGrabbed(null)}
+              />
+            ))}
 
-        {pivots.map(({ which, label }) => {
-          const point = pivotPoint(arcs, which, width, height)
-          return (
-            <circle
-              key={which}
-              className="arc-handle arc-handle--pivot"
-              data-grabbed={grabbed === which}
-              cx={point.x}
-              cy={point.y}
-              r={1.9}
-              aria-label={label}
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId)
-                setGrabbed(which)
-              }}
-              onPointerMove={(e) => {
-                if (grabbed === which) dragPivot(which, e.clientX, e.clientY)
-              }}
-              onPointerUp={(e) => {
-                e.currentTarget.releasePointerCapture(e.pointerId)
-                setGrabbed(null)
-              }}
-              onPointerCancel={() => setGrabbed(null)}
-            />
-          )
-        })}
+            {pivots.map(({ which, label }) => {
+              const point = pivotPoint(arcs, which, width, height)
+              return (
+                <circle
+                  key={which}
+                  className="arc-handle arc-handle--pivot"
+                  data-grabbed={grabbed === which}
+                  stroke={ink.core}
+                  cx={point.x}
+                  cy={point.y}
+                  r={1.9}
+                  aria-label={label}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    setGrabbed(which)
+                  }}
+                  onPointerMove={(e) => {
+                    if (grabbed === which) dragPivot(which, e.clientX, e.clientY)
+                  }}
+                  onPointerUp={(e) => {
+                    e.currentTarget.releasePointerCapture(e.pointerId)
+                    setGrabbed(null)
+                  }}
+                  onPointerCancel={() => setGrabbed(null)}
+                />
+              )
+            })}
+          </>
+        )}
       </svg>
     </div>
   )
