@@ -1,10 +1,12 @@
-# The build stage runs `npm ci` and *then* `COPY . .`, so anything left here gets
-# copied over the result. node_modules is the one that actually breaks the build:
-# the host's copy holds @rolldown/binding-win32-x64-msvc, which would replace the
-# linux-musl binding npm ci just installed and leave `npm run build` with no
-# native binding it can load.
+# The build stage runs `npm ci` and *then* copies the workspaces in, so anything
+# left here gets copied over the result. node_modules is the one that actually
+# breaks the build: the host's copy holds @rolldown/binding-win32-x64-msvc, which
+# would replace the linux-musl binding npm ci just installed and leave
+# `npm run build` with no native binding it can load.
 node_modules
+**/node_modules
 dist
+**/dist
 
 .git
 .gitignore

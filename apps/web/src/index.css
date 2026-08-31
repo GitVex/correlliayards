@@ -36,9 +36,9 @@
   /* Surface texture, layered under the panel gradients. Tiling SVG turbulence
      rather than bitmaps, so it stays sharp at any zoom and costs a few hundred
      bytes each. */
-  --tex-grain: url('./assets/textures/rust-grain.svg');
-  --tex-mottle: url('./assets/textures/rust-mottle.svg');
-  --tex-streak: url('./assets/textures/rust-streak.svg');
+  --tex-grain: url('assets/textures/rust-grain.svg');
+  --tex-mottle: url('assets/textures/rust-mottle.svg');
+  --tex-streak: url('assets/textures/rust-streak.svg');
 
   --ff-display: 'Saira Condensed', ui-sans-serif, system-ui, sans-serif;
   --ff-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;

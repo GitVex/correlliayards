@@ -1,8 +1,8 @@
 services:
   corelliayards:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_CORELLIAYARDS_8300
