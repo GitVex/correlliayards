@@ -16,10 +16,14 @@ export function CardRenderer({
   faction,
   cardData,
   images,
+  chrome = true,
 }: {
   faction: Faction
   cardData: CardData
   images: CardImages
+  /** The dashed slot guides. Off for the export copy — see TokenRenderer, which
+   *  has the same switch for a harder reason. */
+  chrome?: boolean
 }) {
   return (
     <div className="card-frame">
@@ -31,7 +35,7 @@ export function CardRenderer({
           alt={`${faction} card background`}
         />
         <CardFace data={cardData} images={images} />
-        <CardSlots />
+        {chrome && <CardSlots />}
       </div>
     </div>
   )
