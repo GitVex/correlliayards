@@ -1,6 +1,9 @@
-/* The contract both apps compile against. No build step: `main` and `types`
-   point straight at this source, and Vite and tsx transpile it in place. Adding
-   a build here would mean a stale `dist/` is the thing the other side imports. */
+/* The contract both apps compile against. This package builds to `dist/`, and
+   `main`, `types`, and `exports` all resolve there — the API ships as plain
+   compiled JS under node, so it cannot import this file's source the way Vite
+   can. The stale-`dist/` hazard that argued against a build step here is real,
+   so every root script that builds or runs a consumer rebuilds this package
+   first, and `npm run dev-shared` keeps it fresh while you're editing. */
 
 /** Bumped whenever the stored shape of a saved card changes. Every persisted
     blob carries the version it was written under, so a v1 row stays
@@ -16,4 +19,10 @@ export interface Resource<T> {
   data: T
   createdAt: string
   updatedAt: string
+}
+
+export interface User {
+  id: string
+  name: string
+  sub: string
 }
