@@ -1,0 +1,7 @@
+node_modules
+dist
+
+# Real configuration, including the client secret and session key.
+# Only .env.example belongs in git.
+.env
+*.local
