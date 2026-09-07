@@ -6,9 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspace=apps/web",
-    "lint": "npm run lint --workspace=apps/web",
-    "preview": "npm run preview --workspace=apps/web"
+    "build-shared": "npm run build --workspace=packages/shared",
+    "dev-shared": "npm run dev --workspace=packages/shared",
+    "dev-front": "npm run build-shared && npm run dev --workspace=apps/web",
+    "build-front": "npm run build-shared && npm run build --workspace=apps/web",
+    "lint-front": "npm run lint --workspace=apps/web",
+    "preview-front": "npm run preview --workspace=apps/web",
+    "build-api": "npm run build-shared && npm run build --workspace=apps/api",
+    "start-api": "npm run build-api && npm run start --workspace=apps/api"
   }
 }
