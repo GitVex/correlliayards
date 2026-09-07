@@ -5,7 +5,8 @@ import largeToken from '../assets/base_tokens/large_blank.png'
 import hullSection from '../assets/base_tokens/blank_hull_section.png'
 import hullFooter from '../assets/base_tokens/blank_hull_footer.png'
 import { HullFooterFace, HullSectionFace, TokenFace } from './TokenFace'
-import type { CardData } from '../cardData'
+import type { BaseSize } from '@correlliayards/shared'
+import type { ShipCardData } from '../cardData'
 import type { CardImages } from '../cardImages'
 import type { Faction } from './CardRenderer'
 import {
@@ -32,7 +33,10 @@ import {
   type PanelPlacement,
 } from '../firingArcs'
 
-export type BaseSize = 'Small' | 'Medium' | 'Large'
+/* Stored on the base token and validated by the API, so the union lives in
+   @correlliayards/shared. Re-exported here, where the SPA already looks for it;
+   TOKEN_SIZE_MM below stays local because millimetres are a print concern. */
+export type { BaseSize } from '@correlliayards/shared'
 
 /** Firing-arc ink, by faction: a wide soft pass for the glow, a thin bright one
  *  over it for the core.
@@ -129,6 +133,7 @@ function HullSection({
 type Grabbed = number | 'front' | 'rear' | null
 
 export function TokenRenderer({
+  name,
   baseSize,
   faction,
   cardData,
@@ -137,10 +142,12 @@ export function TokenRenderer({
   setArcs,
   chrome = true,
 }: {
+  /** The card's title, printed in the token's name band. */
+  name: string
   baseSize: BaseSize
   /** Picks the firing arcs' colour. */
   faction: Faction
-  cardData: CardData
+  cardData: ShipCardData
   /** The user-supplied artwork — the token only uses the tinycon. */
   images: CardImages
   arcs: FiringArcs
@@ -210,7 +217,7 @@ export function TokenRenderer({
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
       >
-        <TokenFace data={cardData} images={images} width={width} height={height} />
+        <TokenFace name={name} images={images} width={width} height={height} />
 
         {/* One hull panel per arc, sat where that arc's pivot bisects it, hugging
             the edge it lands on. The footer takes the rear arc's place at the foot

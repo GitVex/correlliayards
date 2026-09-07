@@ -15,7 +15,9 @@ type TextOptionProps = CommonProps & {
 type SelectOptionProps = CommonProps & {
   kind: 'select'
   value: string
-  choices: string[]
+  /** Readonly because the shared vocabulary lists are `as const` — this only
+   *  ever maps over them. */
+  choices: readonly string[]
   onChange: (value: string) => void
 }
 

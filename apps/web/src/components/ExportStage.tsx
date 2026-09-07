@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import { CardRenderer, type Faction } from './CardRenderer'
 import { TokenRenderer, type BaseSize } from './TokenRenderer'
-import type { CardData } from '../cardData'
+import type { ShipCardData } from '../cardData'
 import type { CardImages } from '../cardImages'
 import type { FiringArcs } from '../firingArcs'
 
@@ -23,6 +23,8 @@ const NO_EDITS = () => {}
 export function ExportStage({
   cardRef,
   tokenRef,
+  name,
+  points,
   faction,
   baseSize,
   cardData,
@@ -31,9 +33,11 @@ export function ExportStage({
 }: {
   cardRef: RefObject<HTMLDivElement | null>
   tokenRef: RefObject<HTMLDivElement | null>
+  name: string
+  points: number
   faction: Faction
   baseSize: BaseSize
-  cardData: CardData
+  cardData: ShipCardData
   images: CardImages
   arcs: FiringArcs
 }) {
@@ -44,11 +48,12 @@ export function ExportStage({
       {/* Each wrapper is a flex item, so it shrink-wraps to the piece's own mm
           box — which is what makes its offsetWidth the printed width. */}
       <div className="export-piece" ref={cardRef}>
-        <CardRenderer faction={faction} cardData={cardData} images={images} chrome={false} />
+        <CardRenderer name={name} points={points} faction={faction} cardData={cardData} images={images} chrome={false} />
       </div>
 
       <div className="export-piece" ref={tokenRef}>
         <TokenRenderer
+          name={name}
           baseSize={baseSize}
           faction={faction}
           cardData={cardData}

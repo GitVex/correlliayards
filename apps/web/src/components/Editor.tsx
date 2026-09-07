@@ -4,7 +4,7 @@ import { EditorOption } from './EditorOption'
 import type { Faction } from './CardRenderer'
 import type { BaseSize } from './TokenRenderer'
 import { DEFENSE_TOKEN_OPTIONS, UPGRADE_OPTIONS, parseDiceRows, speedCount } from '../cardData'
-import type { CardData, DefenseTokenType, UpgradeType } from '../cardData'
+import type { ShipCardData, DefenseTokenType, UpgradeType } from '../cardData'
 import type { CardImageKey, CardImages } from '../cardImages'
 import { withSplit, type FiringArcs } from '../firingArcs'
 import { cardJson } from '../cardJson'
@@ -73,6 +73,11 @@ function SpeedColumn({
 }
 
 export function Editor({
+  id,
+  name,
+  setName,
+  points,
+  setPoints,
   faction,
   setFaction,
   baseSize,
@@ -84,12 +89,20 @@ export function Editor({
   arcs,
   setArcs,
 }: {
+  /** Envelope fields. They are not part of `cardData` because they are not part
+   *  of a ship's payload — every card kind has a name and a cost, and they are
+   *  columns rather than document contents. */
+  id: string
+  name: string
+  setName: (name: string) => void
+  points: number
+  setPoints: (points: number) => void
   faction: Faction
   setFaction: (faction: Faction) => void
   baseSize: BaseSize
   setBaseSize: (baseSize: BaseSize) => void
-  cardData: CardData
-  setCardData: (updater: (data: CardData) => CardData) => void
+  cardData: ShipCardData
+  setCardData: (updater: (data: ShipCardData) => ShipCardData) => void
   images: CardImages
   setImage: (key: CardImageKey, file: File | null) => void
   arcs: FiringArcs
@@ -114,7 +127,7 @@ export function Editor({
   const toggleGroup = (key: GroupKey) =>
     setOpenGroups((g) => ({ ...g, [key]: !g[key] }))
 
-  function set<K extends keyof CardData>(key: K, value: CardData[K]) {
+  function set<K extends keyof ShipCardData>(key: K, value: ShipCardData[K]) {
     setCardData((d) => ({ ...d, [key]: value }))
   }
 
@@ -122,7 +135,7 @@ export function Editor({
   // stale as fields come and go. Each counts the thing its panel is actually
   // about: filled-in identity fields, artwork picked, arcs carrying dice — the
   // anti-squadron battery is not an arc, so it stays out of that one.
-  const identityFilled = [cardData.shipClass, cardData.imageCredit].filter((v) => v.trim()).length + 3
+  const identityFilled = [name, cardData.imageCredit].filter((v) => v.trim()).length + 3
   const imagesPicked = Object.values(images).filter(Boolean).length
   const armedArcs = [
     cardData.armamentFront,
@@ -164,7 +177,7 @@ export function Editor({
           // Read-only on purpose: this is a view of the state the fields own, not
           // a second way to write it. The same string the Copy JSON button puts on
           // the clipboard.
-          <pre className="jsonview">{cardJson({ faction, baseSize, cardData, images, arcs })}</pre>
+          <pre className="jsonview">{cardJson({ id, name, points, faction, baseSize, cardData, arcs })}</pre>
         ) : (
           <>
             <Group
@@ -173,7 +186,7 @@ export function Editor({
               open={openGroups.identity}
               onToggle={() => toggleGroup('identity')}
             >
-              <EditorOption kind="text" label="Ship class" value={cardData.shipClass} onChange={(v) => set('shipClass', v)} />
+              <EditorOption kind="text" label="Ship class" value={name} onChange={setName} />
               <EditorOption kind="text" label="Image credit" value={cardData.imageCredit} onChange={(v) => set('imageCredit', v)} />
               <EditorOption
                 kind="select"
@@ -191,8 +204,8 @@ export function Editor({
               />
               <EditorOption
                 kind="number" label="Points" maxWidth={64}
-                value={String(cardData.points)}
-                onChange={(v) => set('points', Number(v) || 0)}
+                value={String(points)}
+                onChange={(v) => setPoints(Number(v) || 0)}
               />
             </Group>
 

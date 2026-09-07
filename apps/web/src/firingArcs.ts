@@ -20,18 +20,12 @@
 //        3 ────────── 2
 // ---------------------------------------------------------------------------
 
-export type FiringArcs = {
-  /** Front-left handle. The front-right one is always its mirror image. */
-  front: number
-  /** Rear-right handle. The rear-left one is always its mirror image. */
-  rear: number
-  /** Where the front boundaries converge, as a fraction down the centre axis. */
-  frontPivot: number
-  /** Where the rear boundaries converge. Only distinct from frontPivot when split. */
-  rearPivot: number
-  /** Two convergence points instead of one. */
-  split: boolean
-}
+/* The five stored numbers are contract — they are what a base token persists —
+   so the shape lives in @correlliayards/shared and is re-exported here. The
+   geometry below stays put: the server never has to draw an arc. */
+export type { FiringArcs } from '@correlliayards/shared'
+
+import type { FiringArcs } from '@correlliayards/shared'
 
 /** Order matches the points arcHandlePoints returns: clockwise from top-left. */
 export const ARC_HANDLE_LABELS = ['Front left', 'Front right', 'Rear right', 'Rear left'] as const
