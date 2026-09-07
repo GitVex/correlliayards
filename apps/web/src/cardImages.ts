@@ -1,8 +1,9 @@
 // ---------------------------------------------------------------------------
 // The three pieces of artwork a card needs that don't ship with the app — the
-// user supplies them. They're kept out of CardData deliberately: CardData is the
-// printed *values* of a card (and the thing a JSON dump wants to be), whereas
-// these are per-session blob URLs.
+// user supplies them. They're kept out of ShipCardData deliberately:
+// ShipCardData is the printed *values* of a card, whereas these are per-session
+// blob URLs. What a saved card stores instead is ArtworkRefs, in shared — the
+// file names, which is all of this that survives the trip.
 // ---------------------------------------------------------------------------
 
 export type CardImageKey = 'thumbnail' | 'schematic' | 'tinycon'

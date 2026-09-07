@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import shipNameBackdrop from '../assets/base_tokens/blank_ship_name_slot.png'
-import { parseDiceRows, type CardData, type DiceLetter } from '../cardData'
+import { parseDiceRows, type ShipCardData, type DiceLetter } from '../cardData'
 import type { CardImages } from '../cardImages'
 import { DICE_ICON, HULL_ICON, SHIELD_ICON } from '../icons'
 import {
@@ -13,7 +13,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // The live base-token face — the counterpart to CardFace, reading the same
-// CardData and painting it into the boxes hand-tuned in TokenSlots.tsx. Position
+// ShipCardData and painting it into the boxes hand-tuned in TokenSlots.tsx. Position
 // lives there; this file only decides what goes in each box.
 //
 // Everything is drawn in its panel's own mm space, so it rides along as the hull
@@ -305,12 +305,12 @@ function ShipName({ name, rect }: { name: string; rect: Rect | null }) {
  *  then covers exactly the box tuned in TokenSlots whatever the base size. The
  *  tinycon is user artwork, so that one is fitted and keeps its aspect ratio. */
 export function TokenFace({
-  data,
+  name,
   images,
   width,
   height,
 }: {
-  data: CardData
+  name: string
   images: CardImages
   width: number
   height: number
@@ -326,7 +326,7 @@ export function TokenFace({
       {nameRect && (
         <image className="token-face" href={shipNameBackdrop} {...nameRect} preserveAspectRatio="none" />
       )}
-      <ShipName name={data.shipClass} rect={nameRect} />
+      <ShipName name={name} rect={nameRect} />
       {tinycon && tinyconRect && (
         <image
           className="token-face"
@@ -341,7 +341,7 @@ export function TokenFace({
 }
 
 /** The rear arc, the anti-squadron dice and the hull value, inside the footer. */
-export function HullFooterFace({ data, width, height }: { data: CardData; width: number; height: number }) {
+export function HullFooterFace({ data, width, height }: { data: ShipCardData; width: number; height: number }) {
   const rect = (key: string) => rectFor(HULL_FOOTER_SLOTS, key, width, height, false)
   return (
     <>

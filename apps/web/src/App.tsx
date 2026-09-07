@@ -7,7 +7,7 @@ import { ExportControls } from './components/ExportControls'
 import { Editor } from './components/Editor'
 import type { Faction } from './components/CardRenderer'
 import { TOKEN_SIZE_MM, type BaseSize } from './components/TokenRenderer'
-import { DEFAULT_CARD_DATA, type CardData } from './cardData'
+import { DEFAULT_CARD_DATA, DEFAULT_CARD_NAME, DEFAULT_POINTS, type ShipCardData } from './cardData'
 import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from './cardImages'
 import { DEFAULT_FIRING_ARCS, type FiringArcs } from './firingArcs'
 import { cardJson } from './cardJson'
@@ -18,9 +18,18 @@ const MAX_ZOOM = 300
 
 function App() {
   const [zoom, setZoom] = useState(100)
+
+  /* The card's own identity, minted here rather than handed back by a save.
+     A card is editable from the moment the editor opens, so it needs to be
+     addressable from that moment too, and its first save is an upsert against
+     an id that already exists. */
+  const [id] = useState(() => crypto.randomUUID())
+  const [name, setName] = useState(DEFAULT_CARD_NAME)
+  const [points, setPoints] = useState(DEFAULT_POINTS)
+
   const [faction, setFaction] = useState<Faction>('Rebel Alliance')
   const [baseSize, setBaseSize] = useState<BaseSize>('Small')
-  const [cardData, setCardData] = useState<CardData>(DEFAULT_CARD_DATA)
+  const [cardData, setCardData] = useState<ShipCardData>(DEFAULT_CARD_DATA)
   const [images, setImages] = useState<CardImages>(EMPTY_CARD_IMAGES)
   const [arcs, setArcs] = useState<FiringArcs>(DEFAULT_FIRING_ARCS)
 
@@ -34,7 +43,7 @@ function App() {
 
   async function copyJson() {
     try {
-      await navigator.clipboard.writeText(cardJson({ faction, baseSize, cardData, images, arcs }))
+      await navigator.clipboard.writeText(cardJson({ id, name, points, faction, baseSize, cardData, arcs }))
       setCopied('done')
     } catch {
       // Blocked clipboard — an insecure origin, or the window not focused. The
@@ -44,7 +53,12 @@ function App() {
     window.setTimeout(() => setCopied('idle'), 1600)
   }
 
-  /** Picking or clearing an image frees the object URL the previous one held. */
+  /** Picking or clearing an image frees the object URL the previous one held.
+   *
+   *  It writes to two places, and this is the only function that does: `images`
+   *  holds the object URL the preview paints from and dies with the session,
+   *  while `cardData.artwork` holds the file name, which is the part a saved
+   *  card keeps. Keeping the single writer here is what stops the two drifting. */
   function setImage(key: CardImageKey, file: File | null) {
     const next = file ? { url: URL.createObjectURL(file), name: file.name } : null
     setImages((prev) => {
@@ -52,6 +66,7 @@ function App() {
       if (previous) URL.revokeObjectURL(previous.url)
       return { ...prev, [key]: next }
     })
+    setCardData((d) => ({ ...d, artwork: { ...d.artwork, [key]: next?.name ?? null } }))
   }
 
   return (
@@ -61,6 +76,11 @@ function App() {
 
         <div className="workspace">
           <Editor
+            id={id}
+            name={name}
+            setName={setName}
+            points={points}
+            setPoints={setPoints}
             faction={faction}
             setFaction={setFaction}
             baseSize={baseSize}
@@ -76,6 +96,8 @@ function App() {
           {/* ===================== PREVIEW ===================== */}
           <section className="preview" aria-label="Preview">
             <Stage
+              name={name}
+              points={points}
               faction={faction}
               baseSize={baseSize}
               zoom={zoom}
@@ -107,7 +129,7 @@ function App() {
               <button className="btn" onClick={copyJson}>
                 {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
               </button>
-              <ExportControls cardRef={exportCardRef} tokenRef={exportTokenRef} shipClass={cardData.shipClass} />
+              <ExportControls cardRef={exportCardRef} tokenRef={exportTokenRef} cardName={name} />
             </div>
           </section>
         </div>
@@ -118,6 +140,8 @@ function App() {
       <ExportStage
         cardRef={exportCardRef}
         tokenRef={exportTokenRef}
+        name={name}
+        points={points}
         faction={faction}
         baseSize={baseSize}
         cardData={cardData}

@@ -2,10 +2,14 @@ import imperialCardBg from '../assets/base_cards/Imperial.png'
 import rebelCardBg from '../assets/base_cards/Rebel.png'
 import { CardSlots } from './CardSlots'
 import { CardFace } from './CardFace'
-import type { CardData } from '../cardData'
+import type { Faction } from '@correlliayards/shared'
+import type { ShipCardData } from '../cardData'
 import type { CardImages } from '../cardImages'
 
-export type Faction = 'Galactic Empire' | 'Rebel Alliance'
+/* Faction is contract — it is stored on the card and validated by the API — so
+   it lives in @correlliayards/shared now. Re-exported here because this is
+   where the rest of the SPA has always reached for it. */
+export type { Faction } from '@correlliayards/shared'
 
 const CARD_BG: Record<Faction, string> = {
   'Galactic Empire': imperialCardBg,
@@ -13,13 +17,17 @@ const CARD_BG: Record<Faction, string> = {
 }
 
 export function CardRenderer({
+  name,
+  points,
   faction,
   cardData,
   images,
   chrome = true,
 }: {
+  name: string
+  points: number
   faction: Faction
-  cardData: CardData
+  cardData: ShipCardData
   images: CardImages
   /** The dashed slot guides. Off for the export copy — see TokenRenderer, which
    *  has the same switch for a harder reason. */
@@ -34,7 +42,7 @@ export function CardRenderer({
           src={CARD_BG[faction]}
           alt={`${faction} card background`}
         />
-        <CardFace data={cardData} images={images} />
+        <CardFace name={name} points={points} data={cardData} images={images} />
         {chrome && <CardSlots />}
       </div>
     </div>

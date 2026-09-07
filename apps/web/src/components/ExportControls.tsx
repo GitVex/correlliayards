@@ -9,11 +9,11 @@ type Job = 'png' | 'pdf'
 export function ExportControls({
   cardRef,
   tokenRef,
-  shipClass,
+  cardName,
 }: {
   cardRef: RefObject<HTMLDivElement | null>
   tokenRef: RefObject<HTMLDivElement | null>
-  shipClass: string
+  cardName: string
 }) {
   const [busy, setBusy] = useState<Job | null>(null)
   const [failed, setFailed] = useState<Job | null>(null)
@@ -23,7 +23,7 @@ export function ExportControls({
     setBusy(job)
     setFailed(null)
     try {
-      await work({ card: cardRef.current, token: tokenRef.current }, shipClass)
+      await work({ card: cardRef.current, token: tokenRef.current }, cardName)
     } catch (error) {
       // Nothing here is recoverable in-app — a failed raster usually means an
       // image the browser refused to inline. Say so on the button and log the

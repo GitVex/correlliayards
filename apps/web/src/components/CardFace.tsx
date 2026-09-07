@@ -3,7 +3,7 @@ import { getSlotBox } from './CardSlots'
 import {
   hasSpeedClicks,
   parseDiceRows,
-  type CardData,
+  type ShipCardData,
   type UpgradeType,
 } from '../cardData'
 import type { CardImage, CardImages } from '../cardImages'
@@ -20,7 +20,7 @@ import {
 } from '../icons'
 
 // ---------------------------------------------------------------------------
-// The live card face — reads CardData and paints the real icons/text at the
+// The live card face — reads ShipCardData and paints the real icons/text at the
 // positions hand-tuned in CardSlots.tsx (via getSlotBox). Position lives
 // there; this file only decides *what* goes in each box and *whether* it
 // shows at all.
@@ -249,7 +249,19 @@ function SpeedCells({ slotPrefix, values }: { slotPrefix: string; values: (numbe
   )
 }
 
-export function CardFace({ data, images }: { data: CardData; images: CardImages }) {
+export function CardFace({
+  name,
+  points,
+  data,
+  images,
+}: {
+  name: string
+  points: number
+  data: ShipCardData
+  images: CardImages
+}) {
+  /* The slot keys stay 'shipClass' and 'points': they name boxes tuned in
+     CardSlots, not fields on the data. */
   const shipClassStyle = boxStyle('shipClass', true)
   const pointsStyle = boxStyle('points', true)
 
@@ -257,12 +269,12 @@ export function CardFace({ data, images }: { data: CardData; images: CardImages 
     <>
       {shipClassStyle && (
         <div style={{ ...shipClassStyle, display: 'flex', alignItems: 'center', color: '#111', fontSize: '5mm', fontWeight: 300, overflow: 'hidden' }}>
-          {data.shipClass}
+          {name}
         </div>
       )}
       {pointsStyle && (
         <div style={{ ...pointsStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111', fontSize: '3mm', fontWeight: 300 }}>
-          {data.points}
+          {points}
         </div>
       )}
 
