@@ -8,7 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { shipArtworkSchema, imageCreditSchema } from './artwork'
+import { shipArtworkSchema, imageCreditSchema } from './artwork.js'
 import {
   commandValueSchema,
   defenseTokenTypeSchema,
@@ -16,7 +16,7 @@ import {
   hullSchema,
   shieldSchema,
   upgradeTypeSchema,
-} from './vocabulary'
+} from './vocabulary.js'
 
 /** Yaw value per pyramid cell, or null while the field is blank. A column that
  *  is all zeros means the ship simply doesn't have that speed. Values are

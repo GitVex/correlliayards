@@ -10,23 +10,20 @@
 // There is one card type per kind, not a draft and a saved form of each. A card
 // is editable in place from the moment it exists, so nothing needs to describe
 // a card that has never been saved. Where a write endpoint genuinely must
-// refuse client-supplied bookkeeping, it can say so at the boundary:
-//
-//     shipCardSchema.omit({ ownerSub: true, createdAt: true, updatedAt: true })
-//
-// which keeps that concern in the route that has it rather than doubling every
-// type in the contract.
+// refuse client-supplied bookkeeping, it can say so at the boundary — see
+// `cardWriteSchema` at the foot of this file, which is that boundary written
+// once rather than in each of the three routes that needs it.
 //
 // Note what is *not* here: a schema version. Dropped deliberately, on the
 // grounds that the game is finished and these shapes are not going to move.
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { shipCardDataSchema } from './ship'
-import { squadronCardDataSchema } from './squadron'
-import { upgradeCardDataSchema } from './upgrade'
-import { shipTokenSchema } from './token'
-import { factionSchema, pointsSchema } from './vocabulary'
+import { shipCardDataSchema } from './ship.js'
+import { squadronCardDataSchema } from './squadron.js'
+import { upgradeCardDataSchema } from './upgrade.js'
+import { shipTokenSchema } from './token.js'
+import { factionSchema, pointsSchema } from './vocabulary.js'
 
 /** The fields every kind has, whatever it is.
  *
@@ -48,6 +45,17 @@ const cardEnvelope = z.object({
   name: z.string().min(1),
   faction: factionSchema.nullable(),
   points: pointsSchema,
+  /** Visible to anyone with the link. A column rather than a payload field by
+   *  the rule above: the public browse endpoint filters on it, so it has to be
+   *  queryable without opening two hundred documents.
+   *
+   *  Only the publish routes move it. It is absent from `cardWriteSchema` on
+   *  purpose — an autosave must not be able to make a card public, or make a
+   *  public one disappear, as a side effect of saving a typo fix. */
+  published: z.boolean(),
+  /** When it was first published, and null whenever `published` is false.
+   *  Re-publishing an unpublished card starts the clock again. */
+  publishedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 })
@@ -81,3 +89,40 @@ export const cardSchema = z.discriminatedUnion('kind', [
   upgradeCardSchema,
 ])
 export type Card = z.infer<typeof cardSchema>
+
+// ---------------------------------------------------------------------------
+// The write shape
+// ---------------------------------------------------------------------------
+
+/** The bookkeeping the server owns and a client may not assert. Stripped from
+ *  every write, so a body that carries them is not an error — the fields are
+ *  simply not read. That matters for the round trip the editor actually does:
+ *  GET a card, edit it, PUT it back. Making the extra fields fatal would force
+ *  every client to hand-strip a body it just received. */
+const serverOwned = {
+  ownerSub: true,
+  published: true,
+  publishedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const
+
+/** `id` is optional on the way in and checked against the path by the route.
+ *  The editor already knows the uuid — it minted it — so the body carrying one
+ *  is the normal case, and a mismatch is a client bug worth a 400 rather than a
+ *  silent write to whichever of the two the server happened to prefer. */
+const writable = { id: z.uuid().optional() }
+
+export const shipCardWriteSchema = shipCardSchema.omit(serverOwned).extend(writable)
+export const squadronCardWriteSchema = squadronCardSchema.omit(serverOwned).extend(writable)
+export const upgradeCardWriteSchema = upgradeCardSchema.omit(serverOwned).extend(writable)
+
+/** The body of `PUT /api/cards/:id`. Still discriminated on `kind`, so a wrong
+ *  payload for the kind fails against that kind's schema rather than against a
+ *  union of all three, and the error names the field that is actually wrong. */
+export const cardWriteSchema = z.discriminatedUnion('kind', [
+  shipCardWriteSchema,
+  squadronCardWriteSchema,
+  upgradeCardWriteSchema,
+])
+export type CardWrite = z.infer<typeof cardWriteSchema>

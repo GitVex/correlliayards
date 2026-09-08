@@ -6,14 +6,13 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "zod": "^4.5.4"
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
   },
   "files": ["dist"],
   "scripts": {

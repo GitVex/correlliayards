@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { baseSizeSchema } from './vocabulary'
+import { baseSizeSchema } from './vocabulary.js'
 
 /** Where the arc boundaries sit on the token.
  *

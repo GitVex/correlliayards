@@ -9,8 +9,8 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { imageCreditSchema, squadronArtworkSchema } from './artwork'
-import { cardTextSchema, defenseTokenSchema, diceRowsSchema, hullSchema } from './vocabulary'
+import { imageCreditSchema, squadronArtworkSchema } from './artwork.js'
+import { cardTextSchema, defenseTokenSchema, diceRowsSchema, hullSchema } from './vocabulary.js'
 
 export const squadronCardDataSchema = z.object({
   /** The squadron this ace flies with — "A-wing", "TIE Fighter". Printed under

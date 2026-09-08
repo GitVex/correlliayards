@@ -20,15 +20,19 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { artworkRefSchema } from './artwork'
-import { baseSizeSchema, factionSchema, hullSchema, pointsSchema, upgradeTypeSchema } from './vocabulary'
-import type { Card } from './card'
+import { artworkRefSchema } from './artwork.js'
+import { baseSizeSchema, factionSchema, hullSchema, pointsSchema, upgradeTypeSchema } from './vocabulary.js'
+import type { Card } from './card.js'
 
 const summaryEnvelope = z.object({
   id: z.uuid(),
   name: z.string().min(1),
   faction: factionSchema.nullable(),
   points: pointsSchema,
+  /** Whether this row is visible to anyone with the link. A list shows it as a
+   *  badge, and the public browse endpoint needs it on the row it returns;
+   *  either way it is already a column, so it costs the projection nothing. */
+  published: z.boolean(),
   updatedAt: z.iso.datetime(),
   /** The one picture a row shows. Each kind has its own name for it — a ship's
    *  thumbnail, a squadron's or upgrade's portrait — so the projection picks the
@@ -84,6 +88,7 @@ export function toCardSummary(card: Card): CardSummary {
     name: card.name,
     faction: card.faction,
     points: card.points,
+    published: card.published,
     updatedAt: card.updatedAt,
   }
 

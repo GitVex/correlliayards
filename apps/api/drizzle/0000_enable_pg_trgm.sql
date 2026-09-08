@@ -1,0 +1,12 @@
+-- Trigram matching, for the `q` name filter on the two card list endpoints.
+--
+-- Hand-written rather than generated, because an extension is not something a
+-- table schema can express: drizzle-kit only knows about the GIN index that
+-- uses it (cards_name_trgm_idx, declared in src/db/schema.ts), and that index
+-- cannot be created until the operator class exists. Hence its own migration,
+-- ordered first.
+--
+-- If this fails with "permission denied to create extension", the database role
+-- is not a superuser and cannot install it. Ask whoever administers the
+-- Postgres to run this one statement once; the next boot will then get past it.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
