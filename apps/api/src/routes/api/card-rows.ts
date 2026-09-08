@@ -13,7 +13,7 @@ import {
 import { z } from 'zod'
 import { db } from '../../db/client.js'
 import { cards } from '../../db/schema.js'
-import { badRequest } from '../../api/errors.js'
+import { badRequest } from '../../http/errors.js'
 
 /* Everything both card list endpoints share. `GET /api/cards` and
    `GET /api/public/cards` differ in exactly one clause — whose rows they are
@@ -40,7 +40,7 @@ const scopeCondition = (scope: CardScope): SQL =>
  *  is visible here: a sidebar of two hundred cards is answered by reading
  *  indexed columns and four `->>` lookups, without hydrating or validating two
  *  hundred payloads. */
-const summaryFields = {
+export const summaryFields = {
   id: cards.id,
   kind: cards.kind,
   name: cards.name,
@@ -292,7 +292,3 @@ export async function listCards(query: CardQuery, scope: CardScope): Promise<Pag
         : null,
   }
 }
-
-/** The summary projection, for the one caller that needs it against a join
- *  rather than against the table on its own: a collection's ordered cards. */
-export { summaryFields }

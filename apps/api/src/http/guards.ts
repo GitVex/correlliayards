@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import type { AuthenticatedUser } from '../plugins/session.js'
+import type { AuthenticatedUser } from './session.js'
 import { badRequest, unauthenticated } from './errors.js'
 
 /* The two things every authenticated /api route does before it does anything

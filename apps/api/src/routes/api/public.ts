@@ -3,12 +3,12 @@ import type { FastifyInstance } from 'fastify'
 import { cardQuerySchema } from '@correlliayards/shared'
 import { db } from '../../db/client.js'
 import { cards } from '../../db/schema.js'
-import { etagFor, notModified } from '../../api/conditional.js'
-import { notFound, parseQuery } from '../../api/errors.js'
-import { idParam } from '../../api/guards.js'
-import { registerRateLimit } from '../../api/rate-limit.js'
+import { etagFor, notModified } from '../../http/conditional.js'
+import { notFound, parseQuery } from '../../http/errors.js'
+import { idParam } from '../../http/guards.js'
+import { registerRateLimit } from '../../http/rate-limit.js'
 import { cardFields, listCards, toCard } from './card-rows.js'
-import { loadCollectionDetail } from './collections.js'
+import { loadCollectionDetail } from './collection-rows.js'
 
 /* The unauthenticated surface — what a shared link points at.
  *
@@ -23,7 +23,7 @@ import { loadCollectionDetail } from './collections.js'
  * difference between "no such card" and "a card you may not see" is the whole
  * signal someone walking a list of leaked ids is looking for. */
 
-/** Anonymous traffic gets a budget. See the note in api/rate-limit.ts about
+/** Anonymous traffic gets a budget. See the note in http/rate-limit.ts about
  *  what this is and is not: a courtesy against a scraper in a tight loop, not a
  *  security control. Generous enough that a person clicking through published
  *  cards will never see it. */

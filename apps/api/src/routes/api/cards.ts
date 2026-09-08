@@ -9,10 +9,10 @@ import {
 } from '@correlliayards/shared'
 import { db } from '../../db/client.js'
 import { cards, type CardDocument } from '../../db/schema.js'
-import { assertIfMatch, etagFor, notModified } from '../../api/conditional.js'
-import { badRequest, conflict, notFound, parseBody, parseQuery } from '../../api/errors.js'
-import { idParam, ownerSub, requireApiAuth } from '../../api/guards.js'
-import { publicUrlFor } from '../../api/public-url.js'
+import { assertIfMatch, etagFor, notModified } from '../../http/conditional.js'
+import { badRequest, conflict, notFound, parseBody, parseQuery } from '../../http/errors.js'
+import { idParam, ownerSub, requireApiAuth } from '../../http/guards.js'
+import { publicUrlFor } from '../../http/public-url.js'
 import { cardFields, listCards, toCard } from './card-rows.js'
 
 /* The card routes. Every one of them is scoped by owner_sub, and that is not

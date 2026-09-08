@@ -1,19 +1,22 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import {
   collectionCardsWriteSchema,
   collectionWriteSchema,
-  type CollectionDetail,
   type CollectionSummary,
   type PublishResult,
 } from '@correlliayards/shared'
-import { db, type DbExecutor } from '../../db/client.js'
+import { db } from '../../db/client.js'
 import { cards, collectionCards, collections } from '../../db/schema.js'
-import { assertIfMatch, etagFor, notModified } from '../../api/conditional.js'
-import { badRequest, conflict, notFound, parseBody } from '../../api/errors.js'
-import { idParam, ownerSub, requireApiAuth } from '../../api/guards.js'
-import { publicUrlFor } from '../../api/public-url.js'
-import { summaryFields, toSummary } from './card-rows.js'
+import { assertIfMatch, etagFor, notModified } from '../../http/conditional.js'
+import { badRequest, conflict, notFound, parseBody } from '../../http/errors.js'
+import { idParam, ownerSub, requireApiAuth } from '../../http/guards.js'
+import { publicUrlFor } from '../../http/public-url.js'
+import {
+  collectionFields,
+  loadCollectionDetail,
+  toEnvelope,
+} from './collection-rows.js'
 
 /* Collections. The same shape of route as cards — client-minted id, idempotent
    PUT, ownership in every WHERE — with one addition: membership is a resource
@@ -26,85 +29,6 @@ import { summaryFields, toSummary } from './card-rows.js'
    three ways for two tabs to disagree about what the list is. */
 
 const COLLECTION_BODY_LIMIT = 64 * 1024
-
-const collectionFields = {
-  id: collections.id,
-  ownerSub: collections.ownerSub,
-  name: collections.name,
-  description: collections.description,
-  published: collections.published,
-  publishedAt: collections.publishedAt,
-  createdAt: collections.createdAt,
-  updatedAt: collections.updatedAt,
-}
-
-type CollectionRow = {
-  id: string
-  name: string
-  description: string
-  published: boolean
-  publishedAt: Date | null
-  createdAt: Date
-  updatedAt: Date
-  ownerSub: string
-}
-
-/* No Zod parse on the way out, unlike a card. Every field here is a typed
-   column rather than a jsonb document, so there is nothing the database could
-   hand back that the compiler has not already checked — the only conversion is
-   the timestamps, which cross the wire as ISO strings for the reason set out in
-   shared/user.ts. */
-function toEnvelope(row: CollectionRow) {
-  return {
-    id: row.id,
-    ownerSub: row.ownerSub,
-    name: row.name,
-    description: row.description,
-    published: row.published,
-    publishedAt: row.publishedAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  }
-}
-
-/** Which collections a read may see — the same idea as CardScope, and required
- *  for the same reason. */
-export type CollectionScope = { kind: 'owner'; ownerSub: string } | { kind: 'public' }
-
-const scopeCondition = (scope: CollectionScope) =>
-  scope.kind === 'owner'
-    ? eq(collections.ownerSub, scope.ownerSub)
-    : eq(collections.published, true)
-
-/** One collection with its ordered card summaries.
- *
- *  Shared by the private read, the public read and the membership write, which
- *  is why it takes an executor: the write wants the result from inside its own
- *  transaction, where the rows it just inserted exist. */
-export async function loadCollectionDetail(
-  executor: DbExecutor,
-  id: string,
-  scope: CollectionScope,
-): Promise<CollectionDetail | undefined> {
-  const [row] = await executor
-    .select(collectionFields)
-    .from(collections)
-    .where(and(eq(collections.id, id), scopeCondition(scope)))
-    .limit(1)
-
-  if (!row) return undefined
-
-  /* Ordered by position, which is the column the join table exists to hold —
-     the cards' own order is not the collection's order. */
-  const memberRows = await executor
-    .select(summaryFields)
-    .from(collectionCards)
-    .innerJoin(cards, eq(cards.id, collectionCards.cardId))
-    .where(eq(collectionCards.collectionId, id))
-    .orderBy(asc(collectionCards.position))
-
-  return { ...toEnvelope(row), cards: memberRows.map(toSummary) }
-}
 
 export async function registerCollectionRoutes(scope: FastifyInstance): Promise<void> {
   scope.get('/collections', { preHandler: requireApiAuth }, async (request, reply) => {

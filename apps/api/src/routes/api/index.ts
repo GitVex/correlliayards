@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { registerErrorEnvelope } from '../../api/errors.js'
+import { registerErrorEnvelope } from '../../http/errors.js'
 import { registerCardRoutes } from './cards.js'
 import { registerCollectionRoutes } from './collections.js'
 import { registerPublicRoutes } from './public.js'

@@ -1,16 +1,16 @@
 import fastify from 'fastify'
 import { config } from './config.js'
-import { discoverZitadel } from './auth/oidc.js'
+import { discoverZitadel } from './routes/auth/oidc.js'
 import { pool } from './db/client.js'
 import { runMigrations } from './db/migrate.js'
-import { registerSession } from './plugins/session.js'
-import { registerAuthRoutes } from './routes/auth.js'
+import { registerSession } from './http/session.js'
+import { registerAuthRoutes } from './routes/auth/index.js'
 import { registerApiRoutes } from './routes/api/index.js'
 import { registerDevConsole } from './routes/dev-console.js'
 
 const server = fastify({ logger: true })
 
-/* Note on `request.ip`, which the public rate limit in api/rate-limit.ts keys
+/* Note on `request.ip`, which the public rate limit in http/rate-limit.ts keys
    on: it is the socket's peer address unless Fastify is told to trust a proxy.
    Behind Coolify's reverse proxy that peer is the proxy for every caller, so
    the limit would be one shared budget rather than one per client. Turning on

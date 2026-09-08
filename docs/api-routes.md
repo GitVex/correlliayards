@@ -178,7 +178,7 @@ Two of the three are now decided, by having been built one way.
   resolves and the slug is decorative, so renaming a published card does not
   break a link already in circulation. A collection is `/k/:uuid/:slug` — `k`
   only because `c` was taken, and worth renaming before anything is published.
-  Built in `apps/api/src/api/public-url.ts`; nothing parses these back, the
+  Built in `apps/api/src/http/public-url.ts`; nothing parses these back, the
   public routes read the id and ignore the slug.
 - **Snapshot or live?** Live. `GET /api/public/cards/:id` reads the same row the
   editor writes, so editing a published card changes the public page. Snapshots
