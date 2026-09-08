@@ -1,35 +1,71 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { preconditionFailed } from './errors.js'
 
-/* Optimistic concurrency, as ETag and If-Match.
+/* ETag, If-Match and If-None-Match.
  *
- * The problem it solves is the one `docs/api-routes.md` sets out: two tabs open
- * on one card, or a laptop and a phone. Last-write-wins silently discards one
- * side, and the user finds out later, if at all.
+ * One tag does two jobs here, and they are not the same job:
  *
- * `updated_at` is already a version — it changes on every content write and on
- * nothing else, which is why publishing deliberately leaves it alone. So the
- * ETag is that timestamp, and no version column is needed.
+ *   - the *concurrency token* a write checks, which must move only when the
+ *     content moves, so that two tabs editing one card cannot silently discard
+ *     each other;
+ *   - the *cache validator* a read checks, which must move whenever anything in
+ *     the response body moves, or a client revalidates, gets 304, and keeps a
+ *     stale copy.
  *
- * The header is required to be sent only if the client wants the check. A PUT
- * without If-Match still wins the race, which keeps a first save — where there
- * is nothing to have raced with — a single request. */
+ * `updated_at` alone can only be the first. Publishing deliberately leaves it
+ * where it is — otherwise publishing from one tab would 412 the next keystroke
+ * in another — but `published` and `publishedAt` are in the body, so a publish
+ * changes the representation without changing the validator. The same happens
+ * to a collection when a card it holds is deleted or renamed elsewhere.
+ *
+ * So the tag is composite: `"<updatedAt>~<the rest>"`. Reads compare the whole
+ * thing; If-Match compares only the leading component. That keeps both
+ * properties at once, and it is why the concurrency part is first and separated
+ * by a character that cannot occur in an ISO timestamp. */
+
+const SEPARATOR = '~'
+
+/** How each extra component is rendered. Null and undefined collapse to a
+ *  placeholder rather than an empty string, so "absent" and "empty" cannot
+ *  produce the same tag. */
+function component(value: Date | string | number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+  return value instanceof Date ? value.toISOString() : String(value)
+}
 
 /** Build the entity tag for a row. Strong, and quoted as HTTP requires.
  *
- *  The timestamp is rendered to its ISO form first, so the tag a client
- *  receives is the same string it saw in the body's `updatedAt`, not a second
- *  encoding of it that happens to differ in a way nobody notices until a
- *  comparison fails. */
-export function etagFor(updatedAt: Date): string {
-  return `"${updatedAt.toISOString()}"`
+ *  `updatedAt` is the concurrency token and always comes first. `variant` is
+ *  everything else the response body exposes that `updatedAt` does not already
+ *  cover — a card passes its publish state, a collection its membership
+ *  fingerprint.
+ *
+ *  The timestamp is rendered to its ISO form, so the leading component is the
+ *  same string the client saw in the body's `updatedAt` rather than a second
+ *  encoding that differs in some way nobody notices until a comparison fails. */
+export function etagFor(
+  updatedAt: Date,
+  ...variant: (Date | string | number | null | undefined)[]
+): string {
+  const parts = [updatedAt.toISOString(), ...variant.map(component)]
+  return `"${parts.join(SEPARATOR)}"`
 }
 
-/** Split the comma-separated list an If-Match or If-None-Match may carry, and
- *  drop the weak-comparison marker: a weak tag can never match under the strong
- *  comparison If-Match requires, so `W/"x"` is simply not `"x"`. */
-function parseTagList(header: string): string[] {
-  return header
+/** The concurrency token out of a tag: everything before the first separator.
+ *
+ *  This is what makes a publish invisible to If-Match. A client that read a card
+ *  before it was published holds `"<t>~-"`, the row now answers `"<t>~<when>"`,
+ *  and the write still succeeds because the content half is unchanged — which is
+ *  exactly the intent. */
+function concurrencyPart(tag: string): string {
+  const unquoted = tag.replace(/^W\//, '').replace(/^"|"$/g, '')
+  const separator = unquoted.indexOf(SEPARATOR)
+  return separator === -1 ? unquoted : unquoted.slice(0, separator)
+}
+
+/** Split the comma-separated list an If-Match or If-None-Match may carry. */
+function parseTagList(header: string | string[]): string[] {
+  return (Array.isArray(header) ? header.join(',') : header)
     .split(',')
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0)
@@ -42,7 +78,9 @@ function parseTagList(header: string): string[] {
  *  - No header: no check. The write proceeds.
  *  - `*`: the row must exist. This is how a client says "replace, do not
  *    create" without knowing the current version.
- *  - Otherwise: one of the listed tags must be the current one.
+ *  - Otherwise: one of the listed tags must share the current tag's concurrency
+ *    component. A weak tag is accepted here, since the comparison is on that
+ *    component rather than on byte equality of the whole entity.
  *
  *  A failure is 412 and not 409, because the client's request was well formed
  *  and its precondition was simply no longer true — which is the difference the
@@ -51,7 +89,7 @@ export function assertIfMatch(request: FastifyRequest, current: string | undefin
   const header = request.headers['if-match']
   if (header === undefined) return
 
-  const tags = parseTagList(Array.isArray(header) ? header.join(',') : header)
+  const tags = parseTagList(header)
   if (tags.length === 0) return
 
   if (tags.includes('*')) {
@@ -61,7 +99,8 @@ export function assertIfMatch(request: FastifyRequest, current: string | undefin
     return
   }
 
-  if (current === undefined || !tags.includes(current)) {
+  const expected = current === undefined ? undefined : concurrencyPart(current)
+  if (expected === undefined || !tags.some((tag) => concurrencyPart(tag) === expected)) {
     throw preconditionFailed(
       'The resource has changed since you last read it. Re-read it and reapply your change.',
     )
@@ -71,9 +110,10 @@ export function assertIfMatch(request: FastifyRequest, current: string | undefin
 /** Answer a conditional GET.
  *
  *  Returns true when the caller's copy is still current and a 304 has been
- *  sent — the handler should then return without a body. Pairs with the ETag
- *  the write side already has to produce, so it costs nothing extra: the editor
- *  polling a card it already holds transfers headers instead of a document. */
+ *  sent — the handler should then return without a body.
+ *
+ *  Compares the whole tag, unlike If-Match: a cached copy is only still good if
+ *  nothing in the body has changed, publish state and membership included. */
 export function notModified(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -82,7 +122,7 @@ export function notModified(
   const header = request.headers['if-none-match']
   if (header === undefined) return false
 
-  const tags = parseTagList(Array.isArray(header) ? header.join(',') : header)
+  const tags = parseTagList(header)
   if (!tags.includes('*') && !tags.includes(etag)) return false
 
   reply.code(304).send()

@@ -8,7 +8,7 @@ import { notFound, parseQuery } from '../../http/errors.js'
 import { idParam } from '../../http/guards.js'
 import { registerRateLimit } from '../../http/rate-limit.js'
 import { cardFields, listCards, toCard } from './card-rows.js'
-import { loadCollectionDetail } from './collection-rows.js'
+import { collectionEtag, loadCollectionDetail } from './collection-rows.js'
 
 /* The unauthenticated surface — what a shared link points at.
  *
@@ -47,7 +47,7 @@ export async function registerPublicRoutes(scope: FastifyInstance): Promise<void
 
     if (!row) throw notFound('No such published card.')
 
-    const etag = etagFor(row.updatedAt)
+    const etag = etagFor(row.updatedAt, row.publishedAt)
     if (notModified(request, reply, etag)) return reply
 
     reply.header('etag', etag)
@@ -72,7 +72,7 @@ export async function registerPublicRoutes(scope: FastifyInstance): Promise<void
     const detail = await loadCollectionDetail(db, id, { kind: 'public' })
     if (!detail) throw notFound('No such published collection.')
 
-    const etag = etagFor(new Date(detail.updatedAt))
+    const etag = collectionEtag(detail)
     if (notModified(request, reply, etag)) return reply
 
     reply.header('etag', etag)

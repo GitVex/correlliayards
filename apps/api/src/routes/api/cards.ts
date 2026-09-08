@@ -68,7 +68,7 @@ export async function registerCardRoutes(scope: FastifyInstance): Promise<void> 
 
     if (!row) throw notFound('No such card.')
 
-    const etag = etagFor(row.updatedAt)
+    const etag = etagFor(row.updatedAt, row.publishedAt)
     /* Returns true having already sent a 304. The editor re-opening a card it
        still holds then costs headers rather than a document. */
     if (notModified(request, reply, etag)) return reply
@@ -162,7 +162,7 @@ export async function registerCardRoutes(scope: FastifyInstance): Promise<void> 
       })
 
       const card: Card = toCard(result)
-      reply.header('etag', etagFor(result.updatedAt))
+      reply.header('etag', etagFor(result.updatedAt, result.publishedAt))
       reply.header('cache-control', 'no-store')
       return reply.code(result.inserted ? 201 : 200).send(card)
     },

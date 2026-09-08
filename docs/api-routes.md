@@ -149,10 +149,21 @@ secret — they turn up in URLs, logs and browser history. The same applies to
 the authorisation check.
 
 **Concurrent edits.** Two tabs on one card, or a laptop and a phone later, and
-last-write-wins discards one side silently. `updatedAt` is already a natural
-version: return it as an `ETag`, have `PUT` honour `If-Match`, and reject a stale
-write with 412. Worth deciding early, because adding it later means every client
-has to learn to send the header.
+last-write-wins discards one side silently. `updatedAt` is the version: `PUT`
+honours `If-Match` against it and rejects a stale write with 412.
+
+The `ETag` is not that timestamp alone, though, because one tag is doing two
+jobs. A write needs a token that moves only when the *content* moves — which is
+why publishing deliberately leaves `updatedAt` alone, so publishing in one tab
+cannot 412 the next keystroke in another. A read needs a validator that moves
+whenever anything *in the body* moves, or a client revalidates, is told 304, and
+keeps a stale copy for good.
+
+So the tag is composite — `"<updatedAt>~<the rest>"`. A card adds its publish
+state; a collection adds its member count and a hash over its members, because
+its body embeds their summaries and those change when a card is deleted,
+renamed or published elsewhere. Reads compare the whole tag; `If-Match`
+compares only the leading component, so both properties hold at once.
 
 **The public routes are the unauthenticated surface** and want their own rate
 limit and body limit.

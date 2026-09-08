@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
 import type { CollectionDetail } from '@correlliayards/shared'
 import { db, type DbExecutor } from '../../db/client.js'
 import { cards, collectionCards, collections } from '../../db/schema.js'
 import { summaryFields, toSummary } from './card-rows.js'
+import { etagFor } from '../../http/conditional.js'
 
 /* The collection read path, kept out of the route module for the same reason
    card-rows.ts is: both the private and the public surface need it, and a route
@@ -83,4 +85,25 @@ export async function loadCollectionDetail(
     .orderBy(asc(collectionCards.position))
 
   return { ...toEnvelope(row), cards: memberRows.map(toSummary) }
+}
+
+/** The cache validator for a collection.
+ *
+ *  A collection's body embeds its members' summaries, so it changes when a
+ *  member is added, removed, reordered, renamed or published — none of which
+ *  touch `collections.updated_at`. Folding the members into the tag is what
+ *  stops a client revalidating and being told 304 while holding a list that no
+ *  longer exists.
+ *
+ *  Each member contributes its id, its own version and its publish state, in
+ *  order; publish state has to be named explicitly because publishing a card
+ *  deliberately does not move its updatedAt either. Hashed rather than
+ *  concatenated so the header stays one line whatever the collection holds. */
+export function collectionEtag(detail: CollectionDetail): string {
+  const fingerprint = detail.cards
+    .map((card) => `${card.id}:${card.updatedAt}:${card.published ? 1 : 0}`)
+    .join('|')
+
+  const members = createHash('sha1').update(fingerprint).digest('base64url').slice(0, 16)
+  return etagFor(new Date(detail.updatedAt), detail.publishedAt, detail.cards.length, members)
 }

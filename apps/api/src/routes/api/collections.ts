@@ -13,6 +13,7 @@ import { badRequest, conflict, notFound, parseBody } from '../../http/errors.js'
 import { idParam, ownerSub, requireApiAuth } from '../../http/guards.js'
 import { publicUrlFor } from '../../http/public-url.js'
 import {
+  collectionEtag,
   collectionFields,
   loadCollectionDetail,
   toEnvelope,
@@ -63,7 +64,7 @@ export async function registerCollectionRoutes(scope: FastifyInstance): Promise<
     })
     if (!detail) throw notFound('No such collection.')
 
-    const etag = etagFor(new Date(detail.updatedAt))
+    const etag = collectionEtag(detail)
     if (notModified(request, reply, etag)) return reply
 
     reply.header('etag', etag)
@@ -211,7 +212,7 @@ export async function registerCollectionRoutes(scope: FastifyInstance): Promise<
 
       if (!detail) throw notFound('No such collection.')
 
-      reply.header('etag', etagFor(new Date(detail.updatedAt)))
+      reply.header('etag', collectionEtag(detail))
       reply.header('cache-control', 'no-store')
       return detail
     },
