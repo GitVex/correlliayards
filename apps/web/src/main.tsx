@@ -4,6 +4,7 @@ import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import './index.css'
 import './App.css'
+import { AuthProvider } from './auth/AuthProvider'
 import { routes } from './routes'
 
 /* Browser history, not hashes: these URLs are meant to be pasted, indexed and
@@ -15,6 +16,12 @@ const router = createBrowserRouter(routes)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {/* Outside the router, not inside a layout: the session is one fact for the
+        whole app, and asking for it per layout would mean the public shell and
+        the app shell each ran their own /auth/me and disagreed while both were
+        in flight. */}
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 )

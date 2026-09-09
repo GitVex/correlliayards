@@ -694,6 +694,122 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   color: var(--faint);
 }
 
+/* ============================================================
+   IDENTITY
+   ============================================================ */
+/* The topbar's right-hand end. A name plate riveted to the plate, and the way
+   out next to it. */
+.acct { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.acct__chip {
+  display: flex; align-items: center; gap: 8px;
+  max-width: 220px;
+  padding: 4px 11px 4px 4px;
+  border: 1px solid var(--rule-hi);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--chalk);
+  background-image: linear-gradient(180deg, #33271c, #201911);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09);
+  transition: border-color .12s, box-shadow .12s;
+}
+.acct__chip:hover { border-color: var(--rust); box-shadow: inset 0 1px 0 rgba(255, 214, 160, .16); }
+/* The `picture` claim when there is one, and a stencilled initial when there
+   is not — the two are the same circle so a profile gaining an avatar does not
+   move anything around it. Sized by the caller in px, because the same
+   component paints a 22px chip and a 64px page header. */
+.avatar {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--plate-hi);
+  /* A dark ring, so a light-edged photo does not bleed into the plate. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 214, 160, .1);
+}
+.avatar--initial {
+  display: grid; place-items: center;
+  background: var(--rust);
+  color: var(--rust-ink);
+  font-family: var(--ff-display);
+  font-weight: 700;
+  /* Tracks the box the caller asked for, so one rule covers both sizes. */
+  font-size: 55%;
+  line-height: 1;
+  user-select: none;
+}
+/* Names can be long and the topbar cannot grow; the full one is on the chip's
+   title and, in full, on the account page. */
+.acct__name {
+  font-family: var(--ff-display);
+  font-size: 12.5px;
+  letter-spacing: .06em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.acct__error { color: var(--amber); font-size: 11.5px; max-width: 22ch; }
+
+/* The one call to action that should out-shout the plate around it. */
+.btn--accent {
+  border-color: var(--rust);
+  color: var(--rust-ink);
+  background-color: var(--rust);
+  background-image: linear-gradient(180deg, var(--rust-hi), var(--rust));
+  font-weight: 600;
+}
+.btn--accent:hover {
+  color: var(--rust-ink);
+  border-color: var(--rust-hi);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 180, .35), 0 0 0 1px rgba(194, 98, 44, .3);
+}
+
+/* ---------- ACCOUNT PAGE ---------- */
+.account__head {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 6px;
+}
+.account__head .page__title { margin-bottom: 2px; }
+.account__head .page__note { margin: 0; }
+.page__subtitle {
+  margin: 24px 0 8px;
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+.page__panel a { color: var(--rust-hi); text-decoration-color: rgba(224, 128, 63, .4); }
+.page__panel a.btn { color: var(--chalk); }
+.page__panel a.btn--accent { color: var(--rust-ink); }
+.page__error { color: var(--amber); margin: 10px 0 0; }
+
+/* The claims, laid out like a stencilled label plate. Same grid as
+   .page__params; kept separate because the notes under these wrap and the
+   route-parameter version is a single line each. */
+.facts {
+  display: grid; grid-template-columns: auto 1fr; gap: 10px 18px;
+  margin: 0;
+  align-items: baseline;
+}
+.facts dt {
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.facts .page__note { display: block; margin-top: 5px; max-width: 46ch; }
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--rule-hi);
+  border-radius: 999px;
+  font-family: var(--ff-display);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ash);
+  vertical-align: 1px;
+}
+.badge--ok { border-color: rgba(194, 98, 44, .55); color: var(--rust-hi); }
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1020px) {
   .workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; }
@@ -704,6 +820,10 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 @media (max-width: 560px) {
   .dims { display: none; }
+  /* The chip keeps its initial and its link; the name is the part the topbar
+     cannot afford, and it is on the account page in full anyway. */
+  .acct__name { display: none; }
+  .acct__chip { padding: 4px; }
   .card-frame { width: 100%; max-width: 69mm; }
   .card-image { max-width: 100%; }
   .token-image { max-width: 100%; }

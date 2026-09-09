@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useMatch } from 'react-router'
 import { CecMark, WrenchMark } from './CecMark'
+import { AuthControls } from './AuthControls'
 import { paths } from '../paths'
 
 type CardType = 'Ship' | 'Squadron' | 'Upgrade'
@@ -81,6 +82,8 @@ export function Topbar() {
           )}
         </div>
       )}
+
+      <AuthControls />
     </header>
   )
 }

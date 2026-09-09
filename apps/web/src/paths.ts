@@ -13,6 +13,7 @@ export const paths = {
   editor: '/',
   cards: '/cards',
   collections: '/collections',
+  account: '/account',
   /* The slug is optional so a hand-trimmed link — everything after the uuid
      deleted — still resolves rather than falling through to the 404. */
   publicCard: '/c/:id/:slug?',

@@ -1,9 +1,11 @@
 import type { RouteObject } from 'react-router'
 import { AppShell } from './shell/AppShell'
+import { SessionRoute } from './auth/SessionRoute'
 import { PublicShell } from './shell/PublicShell'
 import { EditorPage } from './pages/EditorPage'
 import { CardsPage } from './pages/CardsPage'
 import { CollectionsPage } from './pages/CollectionsPage'
+import { AccountPage } from './pages/AccountPage'
 import { PublicCardPage } from './pages/PublicCardPage'
 import { PublicCollectionPage } from './pages/PublicCollectionPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -24,9 +26,19 @@ export const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [
+      /* The editor is not behind the gate, and should not be. You can lay out
+         a card, export it and copy its JSON without an account; signing in is
+         what lets you keep one. Putting a login in front of the thing the site
+         is for would be asking for a commitment before showing the work. */
       { index: true, element: <EditorPage /> },
-      { path: paths.cards, element: <CardsPage /> },
-      { path: paths.collections, element: <CollectionsPage /> },
+      {
+        element: <SessionRoute />,
+        children: [
+          { path: paths.cards, element: <CardsPage /> },
+          { path: paths.collections, element: <CollectionsPage /> },
+          { path: paths.account, element: <AccountPage /> },
+        ],
+      },
     ],
   },
   {
