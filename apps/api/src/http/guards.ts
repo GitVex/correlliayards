@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import type { AuthenticatedUser } from './session.js'
+import type { SessionUser } from '@correlliayards/shared'
 import { badRequest, unauthenticated } from './errors.js'
 
 /* The two things every authenticated /api route does before it does anything
@@ -30,7 +30,7 @@ export async function requireApiAuth(request: FastifyRequest): Promise<void> {
  *  alternative is `request.session.user!.sub` at forty call sites, which is a
  *  non-null assertion standing exactly where the ownership check that makes the
  *  whole API safe begins. */
-export function currentUser(request: FastifyRequest): AuthenticatedUser {
+export function currentUser(request: FastifyRequest): SessionUser {
   const user = request.session.user
   if (!user) {
     throw unauthenticated('No active session. Start a login at /auth/login.')

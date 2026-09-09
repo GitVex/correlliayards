@@ -1,7 +1,10 @@
 import * as client from 'openid-client'
 import type { FastifyInstance } from 'fastify'
+import type { MeResponse } from '@correlliayards/shared'
 import { config } from '../../config.js'
 import { requireAuth } from './require-auth.js'
+import { findAccount, recordLogin } from './account-rows.js'
+import { buildProfile, refreshProfileIfStale } from './profile.js'
 
 /* Only same-origin, absolute-path destinations may be returned to after login.
    Without this check, /auth/login?returnTo=https://evil.example turns the
@@ -140,23 +143,36 @@ export async function registerAuthRoutes(
        drops all prior data, which also disposes of oidcTx for us. */
     await request.session.regenerate()
 
-    request.session.user = {
-      sub: claims.sub,
-      name: typeof claims.name === 'string' ? claims.name : undefined,
-      email: typeof claims.email === 'string' ? claims.email : undefined,
-      emailVerified:
-        typeof claims.email_verified === 'boolean' ? claims.email_verified : undefined,
-      preferredUsername:
-        typeof claims.preferred_username === 'string'
-          ? claims.preferred_username
-          : undefined,
-    }
+    /* The id_token's claims, overlaid with whatever userinfo knows. Doing the
+       userinfo call here rather than only on demand is what makes the login
+       land with a complete profile no matter how the Zitadel application is
+       configured — see profile.ts. It cannot fail the login: an unreachable
+       userinfo endpoint returns nothing and the id_token's claims stand. */
+    request.session.user = await buildProfile(
+      oidc,
+      claims as unknown as Record<string, unknown>,
+      tokens.access_token,
+      claims.sub,
+      request.log,
+    )
+    request.session.profileFetchedAt = Date.now()
 
     request.session.tokens = {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       idToken: tokens.id_token,
       expiresAt: expiresIn === undefined ? undefined : Date.now() + expiresIn * 1000,
+    }
+
+    /* First login creates the row this app keeps about a person; later ones
+       only touch last_seen_at. Deliberately not allowed to fail the login —
+       the identity is already proven and the session already established, so a
+       database hiccup here should cost a timestamp, not a sign-in. /auth/me
+       creates the row if it finds none, which is what makes that safe. */
+    try {
+      await recordLogin(claims.sub)
+    } catch (err) {
+      request.log.error({ err, sub: claims.sub }, 'could not record the login; /auth/me will retry')
     }
 
     request.log.info(
@@ -178,7 +194,27 @@ export async function registerAuthRoutes(
     /* This response differs per session, so it must never be stored by a
        browser cache or any proxy in between. */
     reply.header('cache-control', 'no-store')
-    return { user: request.session.user }
+
+    /* Cheap almost every time: it only reaches Zitadel once the cached profile
+       is older than PROFILE_TTL_MS, and never when the access token it would
+       need has already expired. */
+    await refreshProfileIfStale(request, oidc)
+
+    /* requireAuth has already established there is one; this narrows it. */
+    const user = request.session.user!
+
+    /* Two halves, and they are different kinds of fact. `user` is a cache of
+       Zitadel's data that this app may not edit. `account` is ours, and it is
+       the authority on it — nobody else has an opinion about when someone first
+       used Corellia Yards. Kept apart in the response so the SPA can tell which
+       fields it may offer to change and which may be stale.
+
+       The upsert on the right of ?? is the self-heal: a session predating the
+       users table, or one whose login could not write the row, gets one now
+       rather than a 500 or a missing half. */
+    const account = (await findAccount(user.sub)) ?? (await recordLogin(user.sub))
+
+    return { user, account } satisfies MeResponse
   })
 
   /* Logging out has two halves, and forgetting the second one is why you were

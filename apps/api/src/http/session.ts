@@ -1,6 +1,7 @@
 import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
 import type { FastifyInstance } from 'fastify'
+import type { SessionUser } from '@correlliayards/shared'
 import { config } from '../config.js'
 
 /** State for a login that is in flight: created by /auth/login, consumed and
@@ -11,16 +12,6 @@ export interface OidcTransaction {
   nonce: string
   codeVerifier: string
   returnTo: string
-}
-
-/** The authenticated identity, distilled from the id_token claims. Only what
-    the app actually needs — the raw token is not the session's public shape. */
-export interface AuthenticatedUser {
-  sub: string
-  name?: string
-  email?: string
-  emailVerified?: boolean
-  preferredUsername?: string
 }
 
 /** Tokens held server-side on the user's behalf. The browser never sees these;
@@ -37,7 +28,16 @@ export interface StoredTokens {
 declare module 'fastify' {
   interface Session {
     oidcTx?: OidcTransaction
-    user?: AuthenticatedUser
+    /** The authenticated identity, distilled from the OIDC claims. Declared in
+     *  packages/shared because it is also the shape `/auth/me` returns, and the
+     *  SPA has to name it to render it. Never the raw tokens — those are below,
+     *  and they do not leave this process. */
+    user?: SessionUser
+    /** Epoch milliseconds, when `user` was last filled from the identity
+     *  provider. The session outlives any single answer from Zitadel by days,
+     *  so the profile needs its own, much shorter, freshness clock — see
+     *  PROFILE_TTL_MS in routes/auth/profile.ts. */
+    profileFetchedAt?: number
     tokens?: StoredTokens
   }
 }

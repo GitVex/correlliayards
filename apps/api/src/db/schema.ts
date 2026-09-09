@@ -47,6 +47,28 @@ export type CardDocument =
   | { data: SquadronCardData }
   | { data: UpgradeCardData }
 
+/** The people who have logged in, and nothing more about them than that.
+ *
+ *  It exists for one fact that OIDC cannot supply: when someone joined. There
+ *  is no claim for account creation — `auth_time` says when *this* login
+ *  happened — so the only honest source for "member since" is the first time we
+ *  saw the subject ourselves. Everything else about a person stays in Zitadel,
+ *  where it can be edited, rather than being copied here to go stale.
+ *
+ *  Deliberately not referenced by `cards.owner_sub`. A foreign key would be the
+ *  better integrity story, but it would also make this migration fail on any
+ *  database that already holds cards owned by a subject with no row here — and
+ *  the row is written at login, so those exist. Ownership is enforced by the
+ *  scoped WHERE on every query, which is where it has to hold anyway. */
+export const users = pgTable('users', {
+  /** The Zitadel subject claim, and the same value `cards.owner_sub` carries. */
+  sub: text('sub').primaryKey(),
+  /** Set once, by the insert, and never updated — the upsert at login touches
+   *  only `last_seen_at`, which is what keeps this meaning "first seen". */
+  registeredAt: timestamp('registered_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const cards = pgTable(
   'cards',
   {
