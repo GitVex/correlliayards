@@ -1,6 +1,8 @@
-/* The contract both apps compile against. No build step: `main` and `types`
-   point straight at this source, and Vite and tsx transpile it in place. Adding
-   a build here would mean a stale `dist/` is the thing the other side imports.
+/* The contract both apps compile against, built once to `dist/` and imported
+   from there by both. It used to point `main` at this source and let each side
+   transpile it; the API ended that, because it runs as plain compiled JS under
+   node and cannot import a .ts file at runtime. The staleness that arrangement
+   was avoiding is handled by every entry script running `build-shared` first.
 
    Every shape is declared once as a Zod schema and its TypeScript type inferred
    back off it. That is the point of the package: the API needs to *validate*
@@ -17,12 +19,16 @@
    arc drag maths, the dice-string parser — stay in the SPA even though they
    read these types. */
 
-export * from './vocabulary'
-export * from './artwork'
-export * from './token'
-export * from './ship'
-export * from './squadron'
-export * from './upgrade'
-export * from './card'
-export * from './summary'
-export * from './user'
+export * from './vocabulary.js'
+export * from './artwork.js'
+export * from './token.js'
+export * from './ship.js'
+export * from './squadron.js'
+export * from './upgrade.js'
+export * from './card.js'
+export * from './summary.js'
+export * from './user.js'
+export * from './collection.js'
+export * from './query.js'
+export * from './publishing.js'
+export * from './errors.js'

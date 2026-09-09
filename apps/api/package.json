@@ -6,20 +6,29 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file-if-exists=.env.local dist/index.js",
-    "dev": "tsc -p tsconfig.json --watch"
+    "dev": "tsc -p tsconfig.json --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env.local --eval \"import('./dist/db/migrate.js').then(m => m.runMigrations(console))\"",
+    "db:studio": "drizzle-kit studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@correlliayards/shared": "*",
     "@fastify/cookie": "^11.1.2",
     "@fastify/session": "^11.1.2",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.12.3",
-    "openid-client": "^6.8.8"
+    "openid-client": "^6.8.8",
+    "pg": "^8.16.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^7.0.2"
   }
 }

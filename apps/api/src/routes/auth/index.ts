@@ -1,7 +1,7 @@
 import * as client from 'openid-client'
 import type { FastifyInstance } from 'fastify'
-import { config } from '../config.js'
-import { requireAuth } from '../auth/require-auth.js'
+import { config } from '../../config.js'
+import { requireAuth } from './require-auth.js'
 
 /* Only same-origin, absolute-path destinations may be returned to after login.
    Without this check, /auth/login?returnTo=https://evil.example turns the

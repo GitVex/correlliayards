@@ -14,8 +14,8 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod'
-import { imageCreditSchema, upgradeArtworkSchema } from './artwork'
-import { cardTextSchema, upgradeTypeSchema } from './vocabulary'
+import { imageCreditSchema, upgradeArtworkSchema } from './artwork.js'
+import { cardTextSchema, upgradeTypeSchema } from './vocabulary.js'
 
 export const upgradeCardDataSchema = z.object({
   upgradeType: upgradeTypeSchema,

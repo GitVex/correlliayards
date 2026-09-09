@@ -1,9 +1,13 @@
 # API routes
 
-A plan, not a description. **None of this is built yet** — `apps/api` on this
-branch has no source, and the auth routes it refers to live on
-`backend-auth-server`. Three of the routes below also depend on model and table
-work that hasn't happened; those are listed under [Prerequisites](#prerequisites).
+Built, in `apps/api/src/routes/api`. This file is now both the plan and the
+description of what is there: the reasoning below is why each route has the
+shape it has, and the code follows it.
+
+The three prerequisites this plan listed are done — see
+[Prerequisites](#prerequisites) for what each turned into. Persistence is
+Postgres via Drizzle: the tables live in `apps/api/src/db/schema.ts` and the
+migrations generated from it in `apps/api/drizzle`.
 
 Written against the domain model in `packages/shared`, and with the eventual
 split of the SPA into a multi-page app in mind — user lists on their own page,
@@ -120,17 +124,21 @@ rows when something is edited mid-scroll, which offset does.
 
 ## Prerequisites
 
-Three things these routes need that do not exist yet.
+The three things these routes needed that did not exist. All three are now in
+`packages/shared`, which is what lets the SPA name them too.
 
-1. **Publishing needs model fields.** `published` and `publishedAt` on the card
-   envelope — envelope rather than payload, because the public browse filters on
-   them, so by the rule the model already follows they are columns. This means
-   editing `packages/shared`.
-2. **Collections are an entirely new entity.** A `collections` table plus an
-   ordered `collection_cards` join. Nothing about them is modelled.
-3. **A shared error envelope.** Every route here can fail, and one agreed shape
-   is what gives the SPA typed error handling instead of `catch (e: any)`.
-
+1. **Publishing model fields.** `published` and `publishedAt` on the card
+   envelope, and the same pair on a collection. Columns rather than payload,
+   because the public browse filters on them — the rule the model already
+   follows. They are absent from `cardWriteSchema` on purpose: publishing is
+   its own route, so an autosave cannot toggle it.
+2. **Collections.** `collection.ts` in the contract, a `collections` table and
+   an ordered `collection_cards` join in the schema. Deleting a collection
+   cascades to the membership rows and not to the cards, which is where the
+   promise that its cards survive is actually kept.
+3. **A shared error envelope.** `errors.ts`, with a closed `code` enum the SPA
+   can `switch` on. Installed on the `/api` scope only — `/auth/*` keeps the
+   OAuth error shape its client libraries expect.
 ## Cross-cutting
 
 **Ownership is part of every query, not just the id lookup.** `GET
@@ -141,10 +149,21 @@ secret — they turn up in URLs, logs and browser history. The same applies to
 the authorisation check.
 
 **Concurrent edits.** Two tabs on one card, or a laptop and a phone later, and
-last-write-wins discards one side silently. `updatedAt` is already a natural
-version: return it as an `ETag`, have `PUT` honour `If-Match`, and reject a stale
-write with 412. Worth deciding early, because adding it later means every client
-has to learn to send the header.
+last-write-wins discards one side silently. `updatedAt` is the version: `PUT`
+honours `If-Match` against it and rejects a stale write with 412.
+
+The `ETag` is not that timestamp alone, though, because one tag is doing two
+jobs. A write needs a token that moves only when the *content* moves — which is
+why publishing deliberately leaves `updatedAt` alone, so publishing in one tab
+cannot 412 the next keystroke in another. A read needs a validator that moves
+whenever anything *in the body* moves, or a client revalidates, is told 304, and
+keeps a stale copy for good.
+
+So the tag is composite — `"<updatedAt>~<the rest>"`. A card adds its publish
+state; a collection adds its member count and a hash over its members, because
+its body embeds their summaries and those change when a card is deleted,
+renamed or published elsewhere. Reads compare the whole tag; `If-Match`
+compares only the leading component, so both properties hold at once.
 
 **The public routes are the unauthenticated surface** and want their own rate
 limit and body limit.
@@ -164,11 +183,23 @@ to plan for than to retrofit.
 
 ## Open questions
 
-- **Public URL shape.** `/c/:uuid`, a slug, or `/c/:uuid/:slug` with the slug
-  decorative? The third keeps identity stable when a card is renamed, which is
-  the reason to prefer it.
-- **Does publishing snapshot or track live?** If a published card is then edited,
-  does the public page change? Live is simpler to build; a snapshot is closer to
-  what people expect the word "publish" to mean.
-- **Do link previews matter?** This is the difference between a JSON-only public
-  API and one that also serves HTML.
+Two of the three are now decided, by having been built one way.
+
+- **Public URL shape.** Settled as `/c/:uuid/:slug`, the third option: the uuid
+  resolves and the slug is decorative, so renaming a published card does not
+  break a link already in circulation. A collection is `/k/:uuid/:slug` — `k`
+  only because `c` was taken, and worth renaming before anything is published.
+  Built in `apps/api/src/http/public-url.ts`; nothing parses these back, the
+  public routes read the id and ignore the slug.
+- **Snapshot or live?** Live. `GET /api/public/cards/:id` reads the same row the
+  editor writes, so editing a published card changes the public page. Snapshots
+  would mean a second copy of the document and a "republish" action to move it,
+  which is a feature and not a detail — worth doing deliberately if the word
+  "publish" turns out to mean the other thing to people using it.
+- **A published collection shows every card it holds**, whether or not those
+  cards are published in their own right. The collection is the unit of
+  publication; a shared list that silently omits half its entries is broken in a
+  way the person sharing it cannot see. Those cards are still 404 at
+  `/api/public/cards/:id` until published individually.
+- **Do link previews matter?** Still open, and still the one that decides whether
+  the public surface is JSON-only. It is JSON-only today.

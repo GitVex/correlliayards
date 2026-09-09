@@ -1,5 +1,5 @@
 import * as client from 'openid-client'
-import { config } from '../config.js'
+import { config } from '../../config.js'
 
 /* Discovery reads the issuer's /.well-known/openid-configuration once at boot
    and returns a Configuration holding every endpoint plus our client
