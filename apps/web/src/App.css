@@ -61,7 +61,14 @@
   opacity: .28;
 }
 
-.brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+/* The brand is the way back to the editor, on both shells, so it is a link —
+   but it carries no link styling: it is a wordmark that happens to be clickable,
+   and underlining it would make it read as body copy. */
+.brand {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  text-decoration: none; color: inherit;
+}
+.brand:hover .brand__logo { color: var(--rust-hi); }
 .brand__logo {
   flex: 0 0 auto;
   color: var(--rust);
@@ -76,6 +83,33 @@
   color: var(--chalk);
   /* stencil paint on metal: cut in hard below, bleeding oxide above */
   text-shadow: 0 1px 0 rgba(0, 0, 0, .8), 0 -1px 0 rgba(194, 98, 44, .3);
+}
+
+/* ---------- NAV ---------- */
+/* Stencilled section names, not buttons: the switch to their right is the one
+   pressable thing on this plate, and two competing pressed states would leave
+   neither reading as "you are here". The active one is marked the way a label
+   painted on steel would be — brighter paint, and a scuff of oxide under it. */
+.nav { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.nav__link {
+  position: relative;
+  font-family: var(--ff-display);
+  font-size: 12.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ash);
+  padding: 6px 11px 5px;
+  border-radius: 2px;
+  transition: color .12s, background .12s;
+}
+.nav__link:hover { color: var(--chalk); background: rgba(255, 214, 160, .05); }
+.nav__link.active { color: var(--chalk); }
+.nav__link.active::after {
+  content: "";
+  position: absolute; left: 11px; right: 11px; bottom: 1px; height: 2px;
+  background: var(--rust);
+  box-shadow: 0 0 6px rgba(194, 98, 44, .5);
 }
 
 /* card-type switch — a recessed slot in the plate with the selector sitting in it */
@@ -195,6 +229,9 @@
 }
 /* pressed = the plate sinks into its own shadow */
 .btn:active { box-shadow: inset 0 2px 5px rgba(0, 0, 0, .65); }
+/* Some buttons are links — "back to the editor", "build your own". They are the
+   same plate; they only need the anchor defaults taken back off. */
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* ============================================================
    WORKSPACE
@@ -581,6 +618,81 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 .export { display: flex; align-items: center; gap: 6px; }
 .btn:disabled { opacity: .55; cursor: default; border-color: var(--rule); color: var(--ash); }
 .btn:disabled:hover { border-color: var(--rule); color: var(--ash); box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09), 0 1px 2px rgba(0, 0, 0, .5); }
+
+/* ============================================================
+   PLACEHOLDER PAGES
+   ============================================================
+   The chrome for a route that resolves but has nothing behind it yet, and for
+   the 404. One recipe covers all of them: a plate on the workbench, centred,
+   holding the description of what will go there. Shares the workspace's
+   surface treatment so a half-built page still looks like part of the tool
+   rather than an error screen. */
+.page {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 64px 24px;
+  background-color: #16110c;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    radial-gradient(120% 90% at 50% 0%, #2b2117 0%, #130f0a 62%);
+  background-blend-mode: overlay, soft-light, normal;
+}
+.page__panel {
+  width: 100%; max-width: 560px;
+  padding: 26px 28px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background-color: var(--plate);
+  background-image: linear-gradient(104deg, #241c14 0%, #1a140e 64%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 160, .07),
+    0 18px 34px -18px rgba(0, 0, 0, .9);
+}
+.page__title {
+  margin: 0 0 10px;
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .8);
+}
+.page__lead { margin: 0 0 14px; color: var(--ash); max-width: 52ch; }
+.page__panel code {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--amber);
+}
+/* The route parameters the URL actually parsed to. On the public pages this is
+   the whole demonstration: the uuid resolved, the slug came along and did
+   nothing. */
+.page__params {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+  margin: 0 0 16px;
+  align-items: baseline;
+}
+.page__params dt {
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+.page__params dd { margin: 0; }
+.page__note { color: var(--faint); font-size: 11.5px; }
+/* The line naming the API route behind the page, ruled off from the copy above
+   it because it is a note to whoever builds the page, not to whoever reads it. */
+.page__feeds {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin: 18px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+.page__feeds-label {
+  font-family: var(--ff-display);
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1020px) {

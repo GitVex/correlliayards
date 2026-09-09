@@ -170,9 +170,18 @@ limit and body limit.
 
 ## Notes for the multi-page split
 
+The SPA now has the router these notes were written for: one route table in
+`apps/web/src/routes.tsx`, with the paths it matches named in
+`apps/web/src/paths.ts`. `/cards`, `/collections` and both public shapes
+resolve, behind placeholder pages that name the route below which will fill
+them. Nothing fetches yet.
+
 The `/api` prefix above is one half of it. The other half: whatever serves the
 SPA needs a catch-all that returns `index.html` for unknown paths so client-side
-routes survive a refresh — and that catch-all must not swallow `/api`.
+routes survive a refresh — and that catch-all must not swallow `/api`. Both hold
+already: `apps/web/Caddyfile` ends in `try_files {path} /index.html`, Vite's dev
+server does the same by default, and the API is a separate service that is never
+handed a page URL.
 
 If published links are meant to unfurl in Discord or Slack with a title and
 preview image, the public **page** needs server-rendered meta tags. Crawlers do
