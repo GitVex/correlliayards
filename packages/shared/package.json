@@ -15,6 +15,7 @@
     "zod": "^4.5.4"
   },
   "files": ["dist"],
+  "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch"

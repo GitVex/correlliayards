@@ -820,6 +820,98 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 .badge--ok { border-color: rgba(194, 98, 44, .55); color: var(--rust-hi); }
 
+/* ============================================================
+   CARD LIST
+   ============================================================ */
+/* A list wants room the account page does not, so the panel widens rather than
+   a second panel recipe existing. */
+.page__panel--wide { max-width: 880px; }
+
+.cards__head {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 16px;
+}
+.cards__head .page__title { margin: 0; flex: 1; }
+
+.filters {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+/* The search box takes the slack; the selects stay the width of their content
+   so the row does not reshuffle when a filter changes. */
+.filters__search { flex: 1 1 190px; min-width: 150px; width: auto; }
+.filters__select { flex: 0 0 auto; width: auto; }
+
+.cardlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* One row per card: a kind tag, the name and its one-line description, then the
+   three things worth comparing down a column — published, cost, and how
+   recently it moved. */
+.cardrow {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background-image: linear-gradient(104deg, #241c14 0%, #1a140e 64%);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .05);
+  transition: border-color .12s;
+}
+.cardrow:hover { border-color: var(--rule-hi); }
+
+/* Standing in for the thumbnail there is no URL for yet — see the note in
+   CardsPage.tsx. Sized like the avatar so the two read as the same furniture. */
+.cardrow__kind {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  border-radius: 2px;
+  background: #120d08;
+  border: 1px solid var(--rule);
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.cardrow__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cardrow__name {
+  font-family: var(--ff-display);
+  font-size: 15px; letter-spacing: .04em;
+  color: var(--chalk);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cardrow__meta {
+  font-size: 11.5px; color: var(--ash);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Monospaced so a column of costs lines up on the digit rather than the glyph. */
+.cardrow__points {
+  flex: 0 0 auto;
+  font-family: var(--ff-mono); font-size: 13px; font-weight: 700;
+  color: var(--amber);
+}
+.cardrow__when {
+  flex: 0 0 auto;
+  width: 96px; text-align: right;
+  font-size: 11px; color: var(--faint);
+}
+
+.cardlist__more { margin: 16px 0 0; text-align: center; }
+.empty { padding: 26px 0; text-align: center; }
+.empty .page__lead { margin-bottom: 12px; }
+
+/* The save failure, above the toolbar rather than in it — see EditorPage. */
+.preview__error {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 16px;
+  border-top: 1px solid var(--rule);
+  background: rgba(217, 164, 65, .09);
+  color: var(--amber);
+  font-size: 12px;
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1020px) {
   .workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; }
@@ -830,6 +922,7 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 @media (max-width: 560px) {
   .dims { display: none; }
+  .cardrow__when { display: none; }
   /* The chip keeps its initial and its link; the name is the part the topbar
      cannot afford, and it is on the account page in full anyway. */
   .acct__name { display: none; }

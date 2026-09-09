@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Stage } from '../components/Stage'
 import { ExportStage } from '../components/ExportStage'
@@ -9,7 +9,11 @@ import { TOKEN_SIZE_MM, type BaseSize } from '../components/TokenRenderer'
 import { DEFAULT_CARD_DATA, DEFAULT_CARD_NAME, DEFAULT_POINTS, type ShipCardData } from '../cardData'
 import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from '../cardImages'
 import { DEFAULT_FIRING_ARCS, type FiringArcs } from '../firingArcs'
-import { cardJson } from '../cardJson'
+import { cardJson, localCard, type EditorState } from '../cardJson'
+import { saveCard } from '../api/cards'
+import { ApiRequestError, describeError } from '../api/client'
+import { useAuth } from '../auth/useAuth'
+import { SaveButton } from '../components/SaveButton'
 import { EXPORT_SCALE } from '../exportPieces'
 
 const MIN_ZOOM = 25
@@ -40,9 +44,59 @@ export function EditorPage() {
   /** What the copy button last did, so it can say so and then go quiet again. */
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle')
 
+  const { refresh } = useAuth()
+
+  /** The card as it would be stored, and the exact text Copy JSON prints. It is
+   *  also what "unsaved" is measured against — see `dirty`. */
+  const editorState = useMemo<EditorState>(
+    () => ({ id, name, points, faction, baseSize, cardData, arcs }),
+    [id, name, points, faction, baseSize, cardData, arcs],
+  )
+  const snapshot = useMemo(() => cardJson(editorState), [editorState])
+
+  /** The serialised card as the server last accepted it, and null until the
+   *  first save. Comparing whole documents rather than tracking a dirty flag
+   *  per field is what makes an edit-then-undo correctly count as no change —
+   *  a flag would still be set, and the button would still be offering to save
+   *  something identical to what is already stored. */
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
+  /** The row's version, for the next save's If-Match. Null before the first
+   *  save, when there is no version to be stale against. */
+  const [etag, setEtag] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const dirty = snapshot !== savedSnapshot
+
+  async function save() {
+    /* Captured before the await, because the editor stays live while the
+       request is in flight. Recording what was actually sent — rather than
+       whatever the state has become by the time the reply lands — is what makes
+       an edit made mid-save correctly leave the button unsaved again. */
+    const sent = snapshot
+
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const result = await saveCard(localCard(editorState), etag)
+      setEtag(result.etag)
+      setSavedSnapshot(sent)
+      setJustSaved(true)
+      window.setTimeout(() => setJustSaved(false), 1600)
+    } catch (err) {
+      setSaveError(`Could not save. ${describeError(err)}`)
+      /* A 401 means the session ended under us. Re-reading it is what swaps the
+         topbar back to Sign in, so the page stops looking signed in. */
+      if (err instanceof ApiRequestError && err.code === 'unauthenticated') void refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function copyJson() {
     try {
-      await navigator.clipboard.writeText(cardJson({ id, name, points, faction, baseSize, cardData, arcs }))
+      await navigator.clipboard.writeText(snapshot)
       setCopied('done')
     } catch {
       // Blocked clipboard — an insecure origin, or the window not focused. The
@@ -103,6 +157,15 @@ export function EditorPage() {
             setArcs={setArcs}
           />
 
+          {/* Above the toolbar rather than inside it: .ptools is a single
+              non-wrapping row, and a sentence in there would squeeze the zoom
+              slider off the end of it. */}
+          {saveError && (
+            <p className="preview__error" role="alert">
+              {saveError}
+            </p>
+          )}
+
           <div className="ptools">
             <div className="zoom" role="group" aria-label="Zoom">
               <input
@@ -122,6 +185,7 @@ export function EditorPage() {
               {EXPORT_SCALE}×
             </span>
             <div className="ptools__spacer" />
+            <SaveButton dirty={dirty} saving={saving} justSaved={justSaved} onSave={() => void save()} />
             <button className="btn" onClick={copyJson}>
               {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
             </button>
