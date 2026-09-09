@@ -746,6 +746,16 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 .acct__error { color: var(--amber); font-size: 11.5px; max-width: 22ch; }
 
+/* A control that is present but has nothing good to report — the Offline
+   retry. Dimmed rather than disabled: it is still the way to ask again. */
+.btn--quiet { color: var(--ash); border-color: var(--rule); }
+.btn--quiet:hover { color: var(--chalk); border-color: var(--rule-hi); }
+
+/* The topbar's right edge is the one place a centred tooltip runs off the
+   window, so these hang from their right edge — the same correction .switch
+   already makes for the same reason. */
+.topbar > .tip::after { left: auto; right: 0; transform: none; white-space: normal; width: 260px; }
+
 /* The one call to action that should out-shout the plate around it. */
 .btn--accent {
   border-color: var(--rust);

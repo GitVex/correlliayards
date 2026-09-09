@@ -10,8 +10,16 @@ import react from '@vitejs/plugin-react'
    Overridable because not everyone runs the API on 8080, and it is read from
    the process rather than an import.meta.env variable on purpose: this is
    build-time configuration for the dev server, and it must never be inlined
-   into the bundle. */
-const apiOrigin = process.env.API_ORIGIN ?? 'http://localhost:8080'
+   into the bundle.
+
+   127.0.0.1 and not `localhost`, which is not a cosmetic difference here. The
+   API binds `127.0.0.1` explicitly (see apps/api/src/index.ts), so it is
+   listening on IPv4 alone — while Node, since v17, resolves `localhost` in
+   whatever order the OS returns and on Windows that is `::1` first. The proxy
+   would then dial IPv6 at a server that is not there and fail with
+   ECONNREFUSED ::1:8080, which reads like the API is down when it is running
+   perfectly well. Naming the address skips the lookup and the ambiguity. */
+const apiOrigin = process.env.API_ORIGIN ?? 'http://127.0.0.1:8080'
 
 // https://vite.dev/config/
 export default defineConfig({
