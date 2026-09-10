@@ -1,18 +1,20 @@
 {
   "name": "correlliayards-root",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "Script orchestration only. The three projects under apps/ and packages/ each own their dependencies, their lockfile and their node_modules; this file installs and builds them in the order they depend on each other, and has no dependencies of its own.",
   "scripts": {
-    "build-shared": "npm run build --workspace=packages/shared",
-    "dev-shared": "npm run dev --workspace=packages/shared",
-    "dev-front": "npm run build-shared && npm run dev --workspace=apps/web",
-    "build-front": "npm run build-shared && npm run build --workspace=apps/web",
-    "lint-front": "npm run lint --workspace=apps/web",
-    "preview-front": "npm run preview --workspace=apps/web",
-    "build-api": "npm run build-shared && npm run build --workspace=apps/api",
-    "start-api": "npm run build-api && npm run start --workspace=apps/api"
+    "install-all": "cd packages/shared && npm install && cd ../../apps/api && npm install && cd ../../apps/web && npm install",
+    "ci-all": "cd packages/shared && npm ci && cd ../../apps/api && npm ci && cd ../../apps/web && npm ci",
+
+    "build-shared": "cd packages/shared && npm run build",
+    "dev-shared": "cd packages/shared && npm run dev",
+
+    "dev-front": "npm run build-shared && cd apps/web && npm run dev",
+    "build-front": "npm run build-shared && cd apps/web && npm run build",
+    "lint-front": "cd apps/web && npm run lint",
+    "preview-front": "cd apps/web && npm run preview",
+
+    "build-api": "npm run build-shared && cd apps/api && npm run build",
+    "start-api": "npm run build-api && cd apps/api && npm run start"
   }
 }
