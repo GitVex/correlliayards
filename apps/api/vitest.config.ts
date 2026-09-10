@@ -17,7 +17,15 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     env: {
-      DATABASE_URL: 'postgres://test:test@127.0.0.1:1/none',
+      /* Unreachable on purpose. The tests that matter here are pure, and one
+         that somehow opened a connection should fail against an address that
+         plainly is not real rather than quietly reach a developer's own
+         database.
+
+         TEST_DATABASE_URL overrides it, and is what the sweep's test looks for
+         before deciding whether to run: that one needs real SQL execution, so
+         it skips unless someone has pointed it at a scratch database. */
+      DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'postgres://test:test@127.0.0.1:1/none',
       DATABASE_SSL: 'disable',
       DATABASE_MIGRATE: 'false',
       ZITADEL_ISSUER: 'https://issuer.invalid',
