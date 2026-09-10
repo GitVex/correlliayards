@@ -2,6 +2,15 @@
 	admin off
 	persist_config off
 	auto_https off
+
+	# Coolify's proxy terminates TLS and forwards here over plain http. Caddy
+	# overwrites X-Forwarded-Proto with its own scheme unless the sender is
+	# trusted, so without this the API sees "http", and @fastify/session refuses
+	# to send a Secure cookie over what it believes is an insecure connection —
+	# the login then completes with no session to find.
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :8300 {
