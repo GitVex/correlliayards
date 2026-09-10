@@ -119,6 +119,7 @@ Database scripts, run from `apps/api`:
 | `npm run db:generate` | Regenerates the migrations from `src/db/schema.ts`. |
 | `npm run db:migrate` | Applies pending migrations. |
 | `npm run db:studio` | Opens Drizzle Studio. |
+| `npm run db:sweep` | Deletes assets no card refers to, older than an hour. Add `-- --dry-run` to count them instead. |
 
 Node 22 or newer; the API scripts use `--env-file-if-exists`.
 
@@ -202,9 +203,8 @@ apps/web/package-lock.json
   into the preview and stored with your account as soon as you pick them, so a
   saved card keeps its pictures. Images live as bytes in Postgres, addressed by
   the SHA-256 of their content and scoped to you.
-  **Outstanding:** nothing collects unreferenced images, and they accumulate as
-  a matter of course — a daily sweep is needed. See *Orphan collection* in
-  `docs/api-routes.md` for what it has to do and why it needs a grace period.
+  Unreferenced images are collected by a nightly sweep — see *Orphan
+  collection* in `docs/api-routes.md`, and `npm run db:sweep`.
 - **JSON** — the JSON tab is a live view of the same state the fields own, and
   *Copy JSON* puts that exact text on the clipboard.
 - **API** — cards, collections and publishing over HTTP, backed by Postgres.
@@ -222,8 +222,15 @@ apps/web/package-lock.json
   tokens stay on the API; the browser gets a session cookie and nothing else,
   which is why there is no auth library in `apps/web`.
 
-Squadron and upgrade cards are not built yet; the topbar shows them as
-in-development rather than pretending otherwise.
+Squadron and upgrade cards are not built yet, and neither are collections or
+the two public pages a shared link points at. The topbar shows all of them as
+in-development rather than pretending otherwise, and the routes still resolve —
+a URL that resolves to a note about a page is better than a 404, and it is what
+lets the pages land later without the links changing.
+
+Nothing in the SPA can publish a card, so no shared link exists to be broken by
+those pages being placeholders. The publish routes in `docs/api-routes.md` are
+built and waiting on the pages, not the other way round.
 
 ## Where things live
 
