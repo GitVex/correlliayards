@@ -8,7 +8,12 @@ import { registerAuthRoutes } from './routes/auth/index.js'
 import { registerApiRoutes } from './routes/api/index.js'
 import { registerDevConsole } from './routes/dev-console.js'
 
-const server = fastify({ logger: true })
+/* trustProxy decides what request.ip means. See the note in config.ts: it is on
+   in production, where this service is only ever reached through Coolify's
+   proxy, and off anywhere it is directly reachable. Fastify uses it for
+   request.ip, request.protocol and request.hostname alike, so it also keeps the
+   logs recording callers rather than recording the proxy over and over. */
+const server = fastify({ logger: true, trustProxy: config.trustProxy })
 
 const oidc = await discoverZitadel()
 
@@ -48,7 +53,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
 }
 
 try {
-  await server.listen({ port: config.port, host: '127.0.0.1' })
+  await server.listen({ port: config.port, host: config.host })
 } catch (err) {
   server.log.error(err)
   process.exit(1)
