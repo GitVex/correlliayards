@@ -33,6 +33,9 @@ export const API_ERROR_CODES = [
   'precondition_failed',
   /** The body is larger than this route accepts. */
   'payload_too_large',
+  /** The upload is not a file type this accepts — decided by the content's own
+   *  leading bytes, not by the Content-Type it arrived with. */
+  'unsupported_media_type',
   /** Public-surface rate limit. Retry-After says when. */
   'rate_limited',
   /** Anything unplanned. Never carries detail — that goes to the server log. */

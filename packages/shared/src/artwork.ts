@@ -12,11 +12,15 @@ import { z } from 'zod'
 
 /** One picture slot.
  *
- *  A file name today, not something a reader can resolve: the pickers hand back
- *  object URLs that die with the session, so the name is a note of what was
- *  loaded. When uploads land this becomes an asset id — a string either way,
- *  which is why the slot is a named schema rather than a bare `z.string()`
- *  repeated six times. */
+ *  An asset id — the SHA-256 of the stored bytes, resolvable at
+ *  `GET /api/assets/:id`. It used to be a bare file name, a note of what had
+ *  been picked that nothing could resolve; uploads landed and it became this,
+ *  without the schema changing, which is what the named slot was for.
+ *
+ *  Still a plain string rather than the stricter pattern on `assetSchema.id`:
+ *  cards saved before uploads existed hold file names here, and a card that
+ *  cannot be read back is worse than one with a picture missing. The SPA treats
+ *  a ref it cannot resolve as no picture at all. */
 export const artworkRefSchema = z.string().nullable()
 export type ArtworkRef = z.infer<typeof artworkRefSchema>
 
