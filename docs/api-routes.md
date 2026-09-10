@@ -75,9 +75,12 @@ to answer is whether an asset id is a capability — unguessable, so serve it to
 anyone who has it — or whether the route should check that some published card
 actually refers to it.
 
-### Orphan collection — needed, not built
+### Orphan collection
 
-**A daily job has to sweep unreferenced assets, and nothing does this yet.**
+**A scheduled sweep deletes unreferenced assets.** It lives at
+`apps/api/src/db/sweep-assets.ts`, beside the migration runner, and runs from a
+scheduler rather than from the server — the API has no scheduler and does not
+want one for a nightly job.
 
 Pictures are stored the moment they are picked, not when the card is saved. That
 is deliberate — it puts the upload where the waiting already is, and it means a
@@ -90,25 +93,39 @@ garbage as a matter of course, not as an exception:
   this: a card names its artwork inside a jsonb document, which nothing can
   reference into.
 
-Nothing collects any of it, so `assets` grows without bound.
+The sweep deletes rows in `assets` older than a grace period whose `id` is named
+by no card **of the same owner**. That last part is not tidiness: the primary key
+is `(owner_sub, id)`, so the same digest can be held by two people, and matching
+on the id alone would let one person's card keep another person's row alive.
 
-The sweep is: delete rows in `assets` older than some grace period whose `id` is
-named by no card of the same owner. The grace period matters — an asset is
-uploaded seconds before the card that refers to it exists, so a sweep with no
-lower bound on age would delete a picture out from under an editor still being
-typed into. An hour is generous.
+The grace period is what makes it safe. An asset is uploaded seconds before the
+card that refers to it exists, so a sweep with no lower bound on age would delete
+a picture out from under an editor still being typed into. It defaults to one
+hour, and `--grace-hours=N` overrides it.
 
-Finding the referenced ids means reading `document -> 'data' -> 'artwork'`
-across that owner's cards. Ships have three slots, squadrons two, upgrades one,
-and the shapes are in `packages/shared/src/artwork.ts`. At the sizes this table
-will see, a nightly full pass per owner is fine; if it ever is not, the fix is a
-`card_assets` join table maintained by the card write, which turns the sweep
-into an anti-join and is worth doing only once the simple version hurts.
+Referenced ids are read with `jsonb_each_text` over `document -> 'data' ->
+'artwork'` rather than by naming slots. Ships have three, squadrons two, upgrades
+one, and the shapes are in `packages/shared/src/artwork.ts` — reading whatever
+the object holds means this does not need editing when a kind gains a slot. A
+value that is not an object is treated as naming nothing, so one malformed row
+cannot abort the pass.
 
-Where it runs is open. The API has no scheduler, so the honest options are a
-Coolify scheduled task invoking a small script next to `db/migrate.ts`, or
-`pg_cron` in the database. The script is easier to reason about and easier to
-run by hand the first few times.
+| Command | What it does |
+| --- | --- |
+| `npm run db:sweep` | Delete this owner-set's orphans. What the scheduler runs. |
+| `npm run db:sweep -- --dry-run` | Count and total them, delete nothing. |
+| `npm run db:sweep -- --grace-hours=24` | A longer lower bound on age. |
+
+In a deployed container the scheduled task is
+`node apps/api/dist/db/sweep-assets.js`, with no npm in between. Run it with
+`--dry-run` the first few times: it reports the row count and their total bytes,
+which is the number worth watching — this table is bytes in Postgres, so it is
+what answers whether the sweep is keeping up.
+
+One pass covers every owner, because the owner match is inside the anti-join. If
+that ever grows too large for a single statement, the fix is a `card_assets` join
+table maintained by the card write, which is worth doing only once the simple
+version hurts.
 
 ## Collections
 

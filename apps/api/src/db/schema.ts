@@ -94,8 +94,8 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
  *
  *  Nothing references this table. A card names its artwork inside a jsonb
  *  document, which no foreign key can reach into, so rows here are not deleted
- *  when the card that used them is — see the orphan sweep noted in
- *  docs/api-routes.md, which is not built. */
+ *  when the card that used them is. That is what db/sweep-assets.ts collects,
+ *  on a schedule rather than on delete. */
 export const assets = pgTable(
   'assets',
   {
@@ -115,8 +115,8 @@ export const assets = pgTable(
   (t) => [
     primaryKey({ columns: [t.ownerSub, t.id] }),
     check('assets_byte_size_check', sql`${t.byteSize} > 0`),
-    /* "What has this owner uploaded, oldest first" — which is the query the
-       orphan sweep will walk. */
+    /* "What has this owner uploaded, oldest first" — which is the order
+       db/sweep-assets.ts judges rows in, oldest being the eligible end. */
     index('assets_owner_created_idx').on(t.ownerSub, t.createdAt),
   ],
 )

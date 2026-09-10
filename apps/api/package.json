@@ -9,7 +9,8 @@
     "dev": "tsc -p tsconfig.json --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --eval \"import('./dist/db/migrate.js').then(m => m.runMigrations(console))\"",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:sweep": "node --env-file-if-exists=.env.local dist/db/sweep-assets.js"
   },
   "keywords": [],
   "author": "",
