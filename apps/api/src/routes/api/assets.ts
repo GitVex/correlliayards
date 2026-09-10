@@ -58,7 +58,7 @@ const unsupportedMedia = (message: string): HttpError =>
 /** Keep a filename printable and short. It is shown beside the editor's picker
  *  and nothing resolves it, so the only requirements are that it survives being
  *  put in a header and cannot be used to smuggle one. */
-function cleanFilename(raw: unknown): string {
+export function cleanFilename(raw: unknown): string {
   if (typeof raw !== 'string' || raw.trim() === '') return 'image'
   return (
     raw

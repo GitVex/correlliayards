@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --eval \"import('./dist/db/migrate.js').then(m => m.runMigrations(console))\"",
     "db:studio": "drizzle-kit studio",
-    "db:sweep": "node --env-file-if-exists=.env.local dist/db/sweep-assets.js"
+    "db:sweep": "node --env-file-if-exists=.env.local dist/db/sweep-assets.js",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +31,7 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }
