@@ -42,6 +42,21 @@ services:
     # No SERVICE_FQDN, and that is the point: this service has no public
     # address. Every request that reaches it came through the Caddy above,
     # which is what lets config.ts trust X-Forwarded-For in production.
+    #
+    # Two networks, and both are needed. `default` is this stack's own, which is
+    # how Caddy reaches this service by the name `api`. `shared` is the one
+    # Coolify puts its own resources on, and without it Postgres is simply not
+    # routable from in here — compose would otherwise give this stack a private
+    # network of its own and nothing would join the two. The symptom is a
+    # connection timeout at boot rather than anything naming a network, because
+    # the packets have nowhere to go rather than somewhere that refuses them.
+    #
+    # Naming `default` explicitly is not optional once this key exists: listing
+    # any network replaces the default rather than adding to it, and dropping it
+    # would leave Caddy unable to resolve `api` at all.
+    networks:
+      - default
+      - shared
     environment:
       # The `:?` form fails the deploy by name when one of these is missing,
       # rather than starting a container that will throw at boot. Same argument
@@ -75,3 +90,18 @@ services:
       # migrations before it listens.
       start_period: 20s
       retries: 3
+
+# Coolify's own network, created by Coolify rather than by this file — hence
+# external: it is joined, never brought up or torn down with the stack.
+#
+# `coolify` is the usual name and the default here. Confirm it against the
+# database container before trusting it:
+#
+#   docker inspect <postgres-container> -f '{{json .NetworkSettings.Networks}}'
+#
+# and set COOLIFY_NETWORK in the environment if it differs, rather than editing
+# this file — the name is a property of the host, not of the application.
+networks:
+  shared:
+    external: true
+    name: ${COOLIFY_NETWORK:-coolify}
