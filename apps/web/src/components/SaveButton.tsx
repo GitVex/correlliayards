@@ -16,10 +16,15 @@ export function SaveButton({
   dirty,
   saving,
   justSaved,
+  waitingForUploads,
   onSave,
 }: {
   dirty: boolean
   saving: boolean
+  /** A picture is still uploading. Saving now would store a null where an id is
+   *  about to exist, so the button waits rather than writing a card that is
+   *  wrong the moment the upload lands. */
+  waitingForUploads: boolean
   /** Briefly true after a save lands, so the button can confirm it happened.
    *  The same pattern Copy JSON already uses next to it. */
   justSaved: boolean
@@ -40,10 +45,16 @@ export function SaveButton({
     <button
       className={dirty ? 'btn btn--accent' : 'btn'}
       onClick={onSave}
-      disabled={saving}
-      title={dirty ? 'Save this card to your account' : 'No changes since the last save'}
+      disabled={saving || waitingForUploads}
+      title={
+        waitingForUploads
+          ? 'Waiting for the artwork to finish uploading'
+          : dirty
+            ? 'Save this card to your account'
+            : 'No changes since the last save'
+      }
     >
-      {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save'}
+      {saving ? 'Saving…' : waitingForUploads ? 'Uploading…' : justSaved ? 'Saved' : 'Save'}
     </button>
   )
 }

@@ -2,7 +2,8 @@ import type { RouteObject } from 'react-router'
 import { AppShell } from './shell/AppShell'
 import { SessionRoute } from './auth/SessionRoute'
 import { PublicShell } from './shell/PublicShell'
-import { EditorPage } from './pages/EditorPage'
+import { NewCardPage } from './pages/NewCardPage'
+import { EditCardPage } from './pages/EditCardPage'
 import { CardsPage } from './pages/CardsPage'
 import { CollectionsPage } from './pages/CollectionsPage'
 import { AccountPage } from './pages/AccountPage'
@@ -30,11 +31,14 @@ export const routes: RouteObject[] = [
          a card, export it and copy its JSON without an account; signing in is
          what lets you keep one. Putting a login in front of the thing the site
          is for would be asking for a commitment before showing the work. */
-      { index: true, element: <EditorPage /> },
+      { index: true, element: <NewCardPage /> },
       {
         element: <SessionRoute />,
         children: [
           { path: paths.cards, element: <CardsPage /> },
+          /* Behind the gate with the list, because the card being edited is
+             yours — an id that is not returns 404 from the API either way. */
+          { path: paths.card, element: <EditCardPage /> },
           { path: paths.collections, element: <CollectionsPage /> },
           { path: paths.account, element: <AccountPage /> },
         ],

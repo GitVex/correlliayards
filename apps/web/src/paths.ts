@@ -12,6 +12,10 @@
 export const paths = {
   editor: '/',
   cards: '/cards',
+  /** One saved card, open in the editor. Nested under the list because that is
+   *  where you arrive from, and because `/cards` and `/cards/:id` being the
+   *  same noun is the whole point of the id. */
+  card: '/cards/:id',
   collections: '/collections',
   account: '/account',
   /* The slug is optional so a hand-trimmed link — everything after the uuid
@@ -19,3 +23,7 @@ export const paths = {
   publicCard: '/c/:id/:slug?',
   publicCollection: '/k/:id/:slug?',
 } as const
+
+/** The link to one card. Built here rather than interpolated at each call site,
+ *  so the pattern above and the links that match it cannot drift. */
+export const cardPath = (id: string): string => `/cards/${id}`

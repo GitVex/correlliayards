@@ -17,6 +17,20 @@ export async function listCards(
   return (await res.json()) as Page<CardSummary>
 }
 
+/** One full card, with the version to write against.
+ *
+ *  The ETag matters as much as the body: without it the first save after
+ *  opening a card would carry no `If-Match`, and two tabs on one card would
+ *  silently overwrite each other — which is the whole thing that header is
+ *  there to prevent. */
+export async function fetchCard(
+  id: string,
+  signal?: AbortSignal,
+): Promise<{ card: Card; etag: string | null }> {
+  const res = await apiFetch(`/api/cards/${id}`, { signal })
+  return { card: (await res.json()) as Card, etag: res.headers.get('etag') }
+}
+
 export type SaveResult = {
   card: Card
   /** The row's new version. Held so the next save can present it as `If-Match`

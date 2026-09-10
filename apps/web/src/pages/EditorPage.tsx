@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Stage } from '../components/Stage'
 import { ExportStage } from '../components/ExportStage'
@@ -6,11 +6,13 @@ import { ExportControls } from '../components/ExportControls'
 import { Editor } from '../components/Editor'
 import type { Faction } from '../components/CardRenderer'
 import { TOKEN_SIZE_MM, type BaseSize } from '../components/TokenRenderer'
-import { DEFAULT_CARD_DATA, DEFAULT_CARD_NAME, DEFAULT_POINTS, type ShipCardData } from '../cardData'
-import { EMPTY_CARD_IMAGES, type CardImageKey, type CardImages } from '../cardImages'
-import { DEFAULT_FIRING_ARCS, type FiringArcs } from '../firingArcs'
+import { type ShipCardData } from '../cardData'
+import { CARD_IMAGE_KEYS, type CardImageKey, type CardImages } from '../cardImages'
+import { type FiringArcs } from '../firingArcs'
+import type { EditorSeed } from '../cardHydration'
 import { cardJson, localCard, type EditorState } from '../cardJson'
 import { saveCard } from '../api/cards'
+import { uploadAsset } from '../api/assets'
 import { ApiRequestError, describeError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { SaveButton } from '../components/SaveButton'
@@ -19,22 +21,48 @@ import { EXPORT_SCALE } from '../exportPieces'
 const MIN_ZOOM = 25
 const MAX_ZOOM = 300
 
-export function EditorPage() {
+/** The editor, opened on whatever the seed says — a blank card or a saved one.
+ *
+ *  The seed is read once, into the initialisers below, and never again: this
+ *  component owns the card from the moment it mounts. A caller that wants a
+ *  different card mounts a different editor, with `key` set to the card's id.
+ *  Feeding a new seed into a live editor through an effect would be the other
+ *  way to do it, and it would mean every field could be overwritten underneath
+ *  someone mid-keystroke. */
+export function EditorPage({ seed }: { seed: EditorSeed }) {
   const [zoom, setZoom] = useState(100)
 
-  /* The card's own identity, minted here rather than handed back by a save.
-     A card is editable from the moment the editor opens, so it needs to be
-     addressable from that moment too, and its first save is an upsert against
-     an id that already exists. */
-  const [id] = useState(() => crypto.randomUUID())
-  const [name, setName] = useState(DEFAULT_CARD_NAME)
-  const [points, setPoints] = useState(DEFAULT_POINTS)
+  /* The card's own identity. Minted by `blankSeed` rather than handed back by a
+     save, so a card is addressable from the moment the editor opens and its
+     first save is an upsert against an id that already exists; or the id of the
+     saved card this was opened from. */
+  const [id] = useState(seed.state.id)
+  const [name, setName] = useState(seed.state.name)
+  const [points, setPoints] = useState(seed.state.points)
 
-  const [faction, setFaction] = useState<Faction>('Rebel Alliance')
-  const [baseSize, setBaseSize] = useState<BaseSize>('Small')
-  const [cardData, setCardData] = useState<ShipCardData>(DEFAULT_CARD_DATA)
-  const [images, setImages] = useState<CardImages>(EMPTY_CARD_IMAGES)
-  const [arcs, setArcs] = useState<FiringArcs>(DEFAULT_FIRING_ARCS)
+  const [faction, setFaction] = useState<Faction>(seed.state.faction)
+  const [baseSize, setBaseSize] = useState<BaseSize>(seed.state.baseSize)
+  const [cardData, setCardData] = useState<ShipCardData>(seed.state.cardData)
+  const [images, setImages] = useState<CardImages>(seed.images)
+  const [arcs, setArcs] = useState<FiringArcs>(seed.state.arcs)
+
+  /* Object URLs live until something frees them. While the editor was the only
+     page there was, that meant "until the tab closes"; now that you can walk
+     back to the card list, it means a leaked picture per pick per visit. Only
+     blob: URLs are ours to revoke — a card opened from the server paints from
+     ordinary asset URLs, and revoking one of those would do nothing at best. */
+  const imagesRef = useRef(images)
+  useEffect(() => {
+    imagesRef.current = images
+  }, [images])
+  useEffect(
+    () => () => {
+      for (const image of Object.values(imagesRef.current)) {
+        if (image?.url.startsWith('blob:')) URL.revokeObjectURL(image.url)
+      }
+    },
+    [],
+  )
 
   /** The two nodes every export reads — see ExportStage.tsx for why they aren't
    *  the ones the preview is showing. */
@@ -59,10 +87,16 @@ export function EditorPage() {
    *  per field is what makes an edit-then-undo correctly count as no change —
    *  a flag would still be set, and the button would still be offering to save
    *  something identical to what is already stored. */
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(() =>
+    /* A card opened from the server starts clean: what is on screen is exactly
+       what is stored, so the Save button has nothing to offer yet. A blank card
+       starts dirty, because it has never been saved at all. */
+    seed.clean ? cardJson(seed.state) : null,
+  )
   /** The row's version, for the next save's If-Match. Null before the first
-   *  save, when there is no version to be stale against. */
-  const [etag, setEtag] = useState<string | null>(null)
+   *  save, when there is no version to be stale against — and the tag the card
+   *  was loaded at when it came from the server. */
+  const [etag, setEtag] = useState<string | null>(seed.etag)
   const [saving, setSaving] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -106,21 +140,70 @@ export function EditorPage() {
     window.setTimeout(() => setCopied('idle'), 1600)
   }
 
-  /** Picking or clearing an image frees the object URL the previous one held.
+  /** Which upload is the current one for each slot.
+   *
+   *  Pick a picture, change your mind, pick another: two requests are now in
+   *  flight for one slot and they can land in either order. Without this the
+   *  slower first upload would overwrite the second's id and the card would
+   *  point at the picture you rejected. Only the newest number counts. */
+  const uploadSeq = useRef<Record<CardImageKey, number>>({ thumbnail: 0, schematic: 0, tinycon: 0 })
+
+  /** Picking or clearing an image. Frees the object URL the previous one held,
+   *  and — since a picture is stored when it is picked rather than when the
+   *  card is saved — starts the upload.
    *
    *  It writes to two places, and this is the only function that does: `images`
-   *  holds the object URL the preview paints from and dies with the session,
-   *  while `cardData.artwork` holds the file name, which is the part a saved
-   *  card keeps. Keeping the single writer here is what stops the two drifting. */
+   *  is the live browser state around the picture, `cardData.artwork` is the
+   *  asset id a saved card keeps. Keeping the single writer here is what stops
+   *  the two drifting — and the id is written only once the bytes are actually
+   *  stored, so a card can never refer to a picture the server does not have. */
   function setImage(key: CardImageKey, file: File | null) {
-    const next = file ? { url: URL.createObjectURL(file), name: file.name } : null
+    const seq = (uploadSeq.current[key] += 1)
+
     setImages((prev) => {
       const previous = prev[key]
       if (previous) URL.revokeObjectURL(previous.url)
-      return { ...prev, [key]: next }
+      return {
+        ...prev,
+        [key]: file
+          ? { url: URL.createObjectURL(file), name: file.name, status: 'uploading', assetId: null }
+          : null,
+      }
     })
-    setCardData((d) => ({ ...d, artwork: { ...d.artwork, [key]: next?.name ?? null } }))
+
+    if (!file) {
+      setCardData((d) => ({ ...d, artwork: { ...d.artwork, [key]: null } }))
+      return
+    }
+
+    void uploadAsset(file).then(
+      (asset) => {
+        if (uploadSeq.current[key] !== seq) return
+        setImages((prev) =>
+          prev[key] ? { ...prev, [key]: { ...prev[key], status: 'stored', assetId: asset.id } } : prev,
+        )
+        setCardData((d) => ({ ...d, artwork: { ...d.artwork, [key]: asset.id } }))
+      },
+      (err: unknown) => {
+        if (uploadSeq.current[key] !== seq) return
+        setImages((prev) =>
+          prev[key]
+            ? { ...prev, [key]: { ...prev[key], status: 'failed', error: describeError(err) } }
+            : prev,
+        )
+        /* The picture stays on screen — it is a local object URL and nothing
+           about a failed upload makes it unrenderable. What it must not do is
+           leave a reference behind in the card, which would be a promise the
+           server cannot keep. */
+        setCardData((d) => ({ ...d, artwork: { ...d.artwork, [key]: null } }))
+      },
+    )
   }
+
+  /** True while any picture is still on its way up. The save waits for it: a
+   *  card written now would store a null where an id is seconds away, and then
+   *  go dirty again the moment the upload lands. */
+  const uploading = CARD_IMAGE_KEYS.some((key) => images[key]?.status === 'uploading')
 
   return (
     <>
@@ -185,7 +268,13 @@ export function EditorPage() {
               {EXPORT_SCALE}×
             </span>
             <div className="ptools__spacer" />
-            <SaveButton dirty={dirty} saving={saving} justSaved={justSaved} onSave={() => void save()} />
+            <SaveButton
+              dirty={dirty}
+              saving={saving}
+              justSaved={justSaved}
+              waitingForUploads={uploading}
+              onSave={() => void save()}
+            />
             <button className="btn" onClick={copyJson}>
               {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy blocked' : 'Copy JSON'}
             </button>

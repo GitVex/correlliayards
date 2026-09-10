@@ -857,6 +857,9 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
    recently it moved. */
 .cardrow {
   display: flex; align-items: center; gap: 14px;
+  /* The whole row is a link to the card. It is a plate, not body copy, so it
+     takes none of an anchor's usual dressing. */
+  text-decoration: none; color: inherit;
   padding: 10px 14px;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -864,7 +867,19 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
   box-shadow: inset 0 1px 0 rgba(255, 214, 160, .05);
   transition: border-color .12s;
 }
-.cardrow:hover { border-color: var(--rule-hi); }
+.cardrow:hover { border-color: var(--rust); }
+.cardrow:hover .cardrow__name { color: #fff5ea; }
+
+/* The card's own thumbnail, in the same box the kind tag would have used, so a
+   list of cards with and without pictures still lines up. */
+.cardrow__thumb {
+  flex: 0 0 auto;
+  width: 34px; height: 34px;
+  border-radius: 2px;
+  object-fit: cover;
+  background: #120d08;
+  border: 1px solid var(--rule);
+}
 
 /* Standing in for the thumbnail there is no URL for yet — see the note in
    CardsPage.tsx. Sized like the avatar so the two read as the same furniture. */

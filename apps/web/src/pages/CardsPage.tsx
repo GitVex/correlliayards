@@ -8,9 +8,10 @@ import {
   type CardSummary,
 } from '@correlliayards/shared'
 import { listCards } from '../api/cards'
+import { assetPath, isAssetId } from '../api/assets'
 import { describeError } from '../api/client'
 import { formatRelative } from '../format'
-import { paths } from '../paths'
+import { cardPath, paths } from '../paths'
 
 /* The filters this page exposes. A subset of what `cardQuerySchema` accepts —
    the points range and the per-kind flags are real parameters and can be added
@@ -52,30 +53,37 @@ function describeRow(row: CardSummary): string {
 
 function CardRow({ row }: { row: CardSummary }) {
   return (
-    <li className="cardrow">
-      {/* No picture, and there cannot be one yet: `thumbnail` is a file name
-          rather than a URL, because artwork is read straight off the machine
-          into the preview and never uploaded. When uploads land it becomes an
-          asset id and this becomes an img. Until then the kind is the more
-          useful thing to put in the space. */}
-      <span className="cardrow__kind" aria-hidden="true">
-        {row.kind.slice(0, 2).toUpperCase()}
-      </span>
+    <li>
+      {/* The whole row is the link. A card's name being the only clickable part
+          makes a 44-pixel-tall target out of a 14-pixel one for no reason. */}
+      <Link className="cardrow" to={cardPath(row.id)}>
+        {/* The stored thumbnail where there is one. A card saved before uploads
+            existed holds a file name here instead, which resolves to nothing —
+            so it falls back to the kind rather than to a broken image. `alt` is
+            empty because the name is right beside it. */}
+        {row.thumbnail && isAssetId(row.thumbnail) ? (
+          <img className="cardrow__thumb" src={assetPath(row.thumbnail)} alt="" loading="lazy" />
+        ) : (
+          <span className="cardrow__kind" aria-hidden="true">
+            {row.kind.slice(0, 2).toUpperCase()}
+          </span>
+        )}
 
-      <div className="cardrow__main">
-        <span className="cardrow__name">{row.name}</span>
-        <span className="cardrow__meta">{describeRow(row)}</span>
-      </div>
+        <div className="cardrow__main">
+          <span className="cardrow__name">{row.name}</span>
+          <span className="cardrow__meta">{describeRow(row)}</span>
+        </div>
 
-      {row.published && <span className="badge badge--ok">published</span>}
+        {row.published && <span className="badge badge--ok">published</span>}
 
-      <span className="cardrow__points" title={`${row.points} points`}>
-        {row.points}
-      </span>
+        <span className="cardrow__points" title={`${row.points} points`}>
+          {row.points}
+        </span>
 
-      <span className="cardrow__when" title={row.updatedAt}>
-        {formatRelative(row.updatedAt)}
-      </span>
+        <span className="cardrow__when" title={row.updatedAt}>
+          {formatRelative(row.updatedAt)}
+        </span>
+      </Link>
     </li>
   )
 }
