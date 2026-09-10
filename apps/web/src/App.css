@@ -104,6 +104,15 @@
   transition: color .12s, background .12s;
 }
 .nav__link:hover { color: var(--chalk); background: rgba(255, 214, 160, .05); }
+/* A section that has a route but not yet a page. Reads as dimmer and inert
+   rather than as a link that failed — the wrench is the same mark the card-type
+   switch uses for the same state, so the two read as one convention. */
+.nav__link--wip {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--faint); cursor: default;
+}
+.nav__link--wip:hover { color: var(--faint); background: none; }
+.nav__wip { flex: 0 0 auto; opacity: .7; }
 .nav__link.active { color: var(--chalk); }
 .nav__link.active::after {
   content: "";

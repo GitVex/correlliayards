@@ -19,11 +19,21 @@ const CARD_TYPES: CardType[] = ['Ship', 'Squadron', 'Upgrade']
 
 /** The nav's own links. Kept to the pages that are the person's own workspace —
  *  a shared link's page is somewhere you arrive, never somewhere you navigate
- *  to, and it has its own chrome for that reason. */
-const NAV = [
-  { to: paths.editor, label: 'Editor', end: true },
-  { to: paths.cards, label: 'Cards', end: false },
-  { to: paths.collections, label: 'Collections', end: false },
+ *  to, and it has its own chrome for that reason.
+ *
+ *  `built` is the same honesty the card-type switch above applies, for the same
+ *  reason. Collections has a full set of API routes and a route in the SPA, but
+ *  the page behind it is a placeholder — so a link styled like the working ones
+ *  promises a page and delivers a note about one. Marked this way it reads as
+ *  what it is: coming, not broken.
+ *
+ *  The route stays registered either way. A nav link is a promise; a URL that
+ *  resolves is just a URL that resolves, and typing /collections or reloading
+ *  on it should still land somewhere rather than 404. */
+const NAV: { to: string; label: string; end: boolean; built: boolean }[] = [
+  { to: paths.editor, label: 'Editor', end: true, built: true },
+  { to: paths.cards, label: 'Cards', end: false, built: true },
+  { to: paths.collections, label: 'Collections', end: false, built: false },
 ]
 
 export function Topbar() {
@@ -48,11 +58,22 @@ export function Topbar() {
       </Link>
 
       <nav className="nav" aria-label="Sections">
-        {NAV.map(({ to, label, end }) => (
-          <NavLink key={to} className="nav__link" to={to} end={end}>
-            {label}
-          </NavLink>
-        ))}
+        {NAV.map(({ to, label, end, built }) =>
+          built ? (
+            <NavLink key={to} className="nav__link" to={to} end={end}>
+              {label}
+            </NavLink>
+          ) : (
+            // Same shape as the disabled card types: the tooltip hangs off the
+            // wrapper because the thing inside takes no pointer events.
+            <span key={to} className="tip" data-tip={`${label} are still in development`}>
+              <span className="nav__link nav__link--wip" aria-disabled="true">
+                {label}
+                <WrenchMark className="nav__wip" />
+              </span>
+            </span>
+          ),
+        )}
       </nav>
 
       <div className="topbar__spacer" />
