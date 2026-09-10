@@ -78,7 +78,15 @@ function fromFastify(error: unknown): HttpError | undefined {
     case 'FST_ERR_CTP_BODY_TOO_LARGE':
       return new HttpError(413, 'payload_too_large', 'Request body is too large.')
     case 'FST_ERR_CTP_INVALID_MEDIA_TYPE':
-      return badRequest('Request body must be application/json.')
+      /* No parser claimed the Content-Type. Which types are acceptable now
+         depends on the route — JSON everywhere except the asset upload, which
+         takes raw images — so this cannot name them and does not try. It is a
+         415 rather than a 400 because that is exactly what the status means. */
+      return new HttpError(
+        415,
+        'unsupported_media_type',
+        'That Content-Type is not accepted on this route.',
+      )
     case 'FST_ERR_CTP_EMPTY_JSON_BODY':
     case 'FST_ERR_CTP_INVALID_JSON_BODY':
       return badRequest('Request body is not valid JSON.')

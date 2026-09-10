@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { registerErrorEnvelope } from '../../http/errors.js'
+import { registerAssetRoutes } from './assets.js'
 import { registerCardRoutes } from './cards.js'
 import { registerCollectionRoutes } from './collections.js'
 import { registerPublicRoutes } from './public.js'
@@ -20,6 +21,7 @@ export async function registerApiRoutes(server: FastifyInstance): Promise<void> 
     async (api) => {
       registerErrorEnvelope(api)
 
+      await registerAssetRoutes(api)
       await registerCardRoutes(api)
       await registerCollectionRoutes(api)
 

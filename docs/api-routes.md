@@ -42,6 +42,74 @@ the card — if that is wanted, the version to write is a narrow `PATCH` limited
 envelope fields (`name`, `points`, `faction`), and it should wait until the list
 page actually needs it.
 
+## Assets
+
+Built, in `apps/api/src/routes/api/assets.ts`. Card artwork, stored as bytes in
+Postgres rather than named and forgotten.
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api/assets` | Store one image. Body is the file itself, Content-Type is its type, `?filename=` is what to call it. Returns the metadata; 201 when the bytes are new, 200 when they were already held. |
+| `GET /api/assets/:id` | The bytes. Owner-scoped. |
+
+**The id is the SHA-256 of the content.** That gives deduplication, an entity
+tag that cannot go stale, and a URL safe to cache forever — all from the same
+property, that the bytes cannot change under an id derived from them.
+
+**Ownership is in the primary key**, `(owner_sub, id)`, not a column beside it.
+Keying on the digest alone would deduplicate across the whole instance, and a
+shared row is an oracle: uploading a file and being told it already existed
+tells you somebody else holds that exact file. Keyed this way you deduplicate
+within your own library and learn nothing about anyone else's.
+
+**The type is decided by sniffing the content**, never by the Content-Type the
+client sent. These bytes are served back from the app's own origin, so a file
+the browser decides is HTML would run as the app, with the app's session cookie.
+SVG is refused outright for the same reason — it is XML that can carry script.
+Responses carry `nosniff` and a `default-src 'none'` CSP as well.
+
+There is deliberately no unauthenticated path yet. Published cards will need
+one, but the public card page is still a placeholder, and opening a hole for a
+page nobody can reach is the wrong order to do it in. When it lands the question
+to answer is whether an asset id is a capability — unguessable, so serve it to
+anyone who has it — or whether the route should check that some published card
+actually refers to it.
+
+### Orphan collection — needed, not built
+
+**A daily job has to sweep unreferenced assets, and nothing does this yet.**
+
+Pictures are stored the moment they are picked, not when the card is saved. That
+is deliberate — it puts the upload where the waiting already is, and it means a
+saved card can never refer to bytes the server does not hold — but it produces
+garbage as a matter of course, not as an exception:
+
+- picking a picture and then picking a different one,
+- picking a picture and closing the tab without ever saving,
+- deleting a card, which leaves its artwork behind. No foreign key can prevent
+  this: a card names its artwork inside a jsonb document, which nothing can
+  reference into.
+
+Nothing collects any of it, so `assets` grows without bound.
+
+The sweep is: delete rows in `assets` older than some grace period whose `id` is
+named by no card of the same owner. The grace period matters — an asset is
+uploaded seconds before the card that refers to it exists, so a sweep with no
+lower bound on age would delete a picture out from under an editor still being
+typed into. An hour is generous.
+
+Finding the referenced ids means reading `document -> 'data' -> 'artwork'`
+across that owner's cards. Ships have three slots, squadrons two, upgrades one,
+and the shapes are in `packages/shared/src/artwork.ts`. At the sizes this table
+will see, a nightly full pass per owner is fine; if it ever is not, the fix is a
+`card_assets` join table maintained by the card write, which turns the sweep
+into an anti-join and is worth doing only once the simple version hurts.
+
+Where it runs is open. The API has no scheduler, so the honest options are a
+Coolify scheduled task invoking a small script next to `db/migrate.ts`, or
+`pg_cron` in the database. The script is easier to reason about and easier to
+run by hand the first few times.
+
 ## Collections
 
 | Route | Purpose |
