@@ -258,21 +258,28 @@ function ShipName({ name, rect }: { name: string; rect: Rect | null }) {
   const textRef = useRef<SVGTextElement>(null)
   const [squeeze, setSqueeze] = useState(1)
 
+  /* The one number out of `rect` that can change the answer. squeeze is the box
+     width over the drawn width, so height cannot move it, and `rect` itself is
+     rebuilt on every render — closing over the object would refit constantly
+     while listing a dependency that is never the same twice. Naming the scalar
+     is what makes the dependency list both honest and short. */
+  const boxWidth = rect?.width ?? null
+
   useLayoutEffect(() => {
-    if (!rect) return
+    if (boxWidth === null) return
     let live = true
     const fit = () => {
       const el = textRef.current
       if (!live || !el) return
       const drawn = el.getComputedTextLength()
-      setSqueeze(drawn > 0 ? Math.min(1, rect.width / drawn) : 1)
+      setSqueeze(drawn > 0 ? Math.min(1, boxWidth / drawn) : 1)
     }
     fit()
     document.fonts?.ready.then(fit)
     return () => {
       live = false
     }
-  }, [name, rect?.width, rect?.height])
+  }, [name, boxWidth])
 
   if (!rect || !name) return null
   const cx = rect.x + rect.width / 2
