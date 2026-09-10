@@ -81,11 +81,31 @@ workspaces. It exists to sequence the three projects:
 | `npm run dev-front` | Builds `packages/shared`, then starts the Vite dev server. |
 | `npm run build-front` | Builds `packages/shared`, then type-checks and bundles the SPA to `apps/web/dist/`. |
 | `npm run lint-front` | ESLint over the SPA. |
+| `npm run test-all` | Vitest in all three projects. Also `test-shared`, `test-api`, `test-front`. |
 | `npm run preview-front` | Serves the built SPA bundle. |
 | `npm run build-api` | Builds `packages/shared`, then compiles the API to `apps/api/dist/`. |
 | `npm run start-api` | Builds the API and runs it. |
 | `npm run install-all` | `npm install` in shared, then the API, then the SPA. |
 | `npm run ci-all` | The same three as `npm ci`, from the lockfiles. What CI and the images use. |
+
+### Tests
+
+Vitest, one install per project, tests beside the code they cover as
+`*.test.ts`. `npm run test-all` runs all three.
+
+They are aimed at the things that fail quietly rather than loudly: the upload
+sniffer, which decides what the browser will treat a stored file as; the
+composite ETag, where a mistake either loses an edit or serves a stale card
+forever; the query schema, where both apps have to agree what a URL means; and
+the card round trip, where a dropped field is written back over the real value.
+A build failure announces itself. None of these would.
+
+`apps/api/vitest.config.ts` supplies a fixture environment, because `config.ts`
+validates the whole environment at import and almost every module reaches it.
+
+`.github/workflows/ci.yml` runs the builds, the lint and the tests on every
+push, and builds both images — a Dockerfile can break while every other command
+passes, which is exactly what happened once already.
 
 ### Signing in while you develop
 
@@ -242,7 +262,7 @@ built and waiting on the pages, not the other way round.
 | `apps/api/src/db/schema.ts` | Table definitions. Migrations are generated from this file. |
 | `apps/api/src/routes/auth/` | The OIDC flow, the profile cache, and the `users` row behind *member since*. |
 | `apps/api/src/routes/api/assets.ts` | Image storage: content-addressed, owner-scoped, type decided by sniffing the bytes. |
-| `apps/web/src/components/CardSlots.tsx` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. |
+| `apps/web/src/cardSlots.ts` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. Data only — the dashed guide that draws it is `components/CardSlots.tsx`. |
 | `apps/web/src/components/TokenSlots.tsx` | The same, for the base token, in the token's own mm space. |
 | `apps/web/src/components/CardFace.tsx` | Reads the slots above and paints the real, data-driven icons and text. |
 | `apps/web/src/firingArcs.ts` | Arc geometry and the drag maths behind the token handles. |
@@ -252,5 +272,5 @@ built and waiting on the pages, not the other way round.
 | `apps/web/src/index.css` | Palette and type tokens. |
 | `apps/web/src/assets/textures/` | The tiling SVG turbulence the rusted chrome is built from. |
 
-`CardSlots.tsx` carries `SHOW_GUIDES` and `TokenSlots.tsx` carries `SHOW_TOKEN_GUIDES`. Either draws labelled dashed outlines
+`cardSlots.ts` carries `SHOW_GUIDES` and `TokenSlots.tsx` carries `SHOW_TOKEN_GUIDES`. Either draws labelled dashed outlines
 over every box — turn it on while tuning placement, off to see the real face.
