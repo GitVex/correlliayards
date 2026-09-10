@@ -14,19 +14,10 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     environment:
-      # The one FQDN in the stack. It is the SPA's, and because /api and /auth
-      # are proxied rather than hosted elsewhere it is the API's public address
-      # too — which is why APP_BASE_URL below is this and not the api service.
       - SERVICE_FQDN_CORELLIAYARDS_8300
-      # Where Caddy forwards /api/* and /auth/*. Names the service below over
-      # the compose network; nothing outside this stack can reach it.
       - API_ORIGIN=http://api:8080
     depends_on:
       api:
-        # Not merely started. Caddy resolves the upstream lazily so it would
-        # come up either way, but a visitor arriving in that window gets a
-        # gateway error on /auth/me, which the SPA reads as "cannot tell" and
-        # renders as a signed-out-looking page to someone who is signed in.
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8300/"]
@@ -39,68 +30,25 @@ services:
       context: ../..
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
-    # No SERVICE_FQDN, and that is the point: this service has no public
-    # address. Every request that reaches it came through the Caddy above,
-    # which is what lets config.ts trust X-Forwarded-For in production.
-    #
-    # Two networks, and both are needed. `default` is this stack's own, which is
-    # how Caddy reaches this service by the name `api`. `shared` is the one
-    # Coolify puts its own resources on, and without it Postgres is simply not
-    # routable from in here — compose would otherwise give this stack a private
-    # network of its own and nothing would join the two. The symptom is a
-    # connection timeout at boot rather than anything naming a network, because
-    # the packets have nowhere to go rather than somewhere that refuses them.
-    #
-    # Naming `default` explicitly is not optional once this key exists: listing
-    # any network replaces the default rather than adding to it, and dropping it
-    # would leave Caddy unable to resolve `api` at all.
     networks:
       - default
       - shared
     environment:
-      # The `:?` form fails the deploy by name when one of these is missing,
-      # rather than starting a container that will throw at boot. Same argument
-      # config.ts makes for validating the environment before anything else
-      # runs — just moved one step earlier, to where it is cheaper to fix.
       - DATABASE_URL=${DATABASE_URL:?set this to the Coolify Postgres resource connection string, without sslmode}
-      # `disable` is right on Coolify's internal network, where Postgres is not
-      # reachable from outside the host at all, and wrong on anything routed
-      # over the internet. Defaults to `require` in config.ts when unset, which
-      # is the safe end to be wrong on.
       - DATABASE_SSL=${DATABASE_SSL:-disable}
       - ZITADEL_ISSUER=${ZITADEL_ISSUER:?the Zitadel issuer url}
       - ZITADEL_CLIENT_ID=${ZITADEL_CLIENT_ID:?}
       - ZITADEL_CLIENT_SECRET=${ZITADEL_CLIENT_SECRET:?}
-      # The SPA's public origin, not this service's. The OIDC redirect and
-      # post-logout URIs derive from it, and those are the URLs Zitadel sends
-      # the browser back to — they have to land on the origin the SPA is on, and
-      # both have to be registered on the Zitadel application. Pointing this at
-      # the api service is the mistake the README calls out, and it fails only
-      # at the end of a login.
       - APP_BASE_URL=${APP_BASE_URL:?the public https origin of the SPA, e.g. https://cards.example.com}
-      # At least 32 characters; config.ts refuses shorter. Changing it signs
-      # everyone out, so it wants to be generated once and kept.
       - SESSION_SECRET=${SESSION_SECRET:?at least 32 characters}
       - NODE_ENV=production
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 3s
-      # Longer than the web service's, because this one's first boot applies
-      # migrations before it listens.
       start_period: 20s
       retries: 3
 
-# Coolify's own network, created by Coolify rather than by this file — hence
-# external: it is joined, never brought up or torn down with the stack.
-#
-# `coolify` is the usual name and the default here. Confirm it against the
-# database container before trusting it:
-#
-#   docker inspect <postgres-container> -f '{{json .NetworkSettings.Networks}}'
-#
-# and set COOLIFY_NETWORK in the environment if it differs, rather than editing
-# this file — the name is a property of the host, not of the application.
 networks:
   shared:
     external: true
