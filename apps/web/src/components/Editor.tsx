@@ -216,21 +216,28 @@ export function Editor({
               onToggle={() => toggleGroup('artwork')}
             >
               <p className="lbl" style={{ marginBottom: 8 }}>
-                Files stay on this machine — they're read straight into the preview, not uploaded anywhere.
+                Pictures are stored with your account as soon as you pick them, so a saved card keeps its artwork.
+                The preview paints from the file on your machine and does not wait for that.
               </p>
               <EditorOption
                 kind="file" label="Thumbnail"
                 fileName={images.thumbnail?.name}
+                status={images.thumbnail?.status}
+                error={images.thumbnail?.error}
                 onChange={(file) => setImage('thumbnail', file)}
               />
               <EditorOption
                 kind="file" label="Schematic"
                 fileName={images.schematic?.name}
+                status={images.schematic?.status}
+                error={images.schematic?.error}
                 onChange={(file) => setImage('schematic', file)}
               />
               <EditorOption
                 kind="file" label="Tiny icon"
                 fileName={images.tinycon?.name}
+                status={images.tinycon?.status}
+                error={images.tinycon?.error}
                 onChange={(file) => setImage('tinycon', file)}
               />
             </Group>

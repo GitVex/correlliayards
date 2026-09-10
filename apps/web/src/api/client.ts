@@ -116,6 +116,11 @@ export function describeError(err: unknown): string {
       return 'That id already belongs to someone else.'
     case 'payload_too_large':
       return 'It is too large to store.'
+    case 'unsupported_media_type':
+      /* The server's own message is the useful one here, unusually: it names
+         the types it accepts, and the SPA's precheck puts the actual size into
+         the message it raises locally. */
+      return err.message
     case 'rate_limited':
       return 'Too many requests just now — try again in a moment.'
     case 'bad_request':

@@ -389,6 +389,12 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 .filepick__btn:hover { border-color: var(--rust); color: var(--chalk); }
 .filepick__btn input { display: none; }
+/* Where a picture's bytes have got to. Small and to the right of the file name,
+   because it answers a question about the *card* — will it still have this
+   tomorrow — not about what is on screen, which is already settled. */
+.filepick__state { flex: 0 0 auto; font-size: 10.5px; letter-spacing: .04em; color: var(--faint); }
+.filepick__state--ok { color: var(--rust-hi); }
+.filepick__state--bad { color: var(--amber); cursor: help; }
 .filepick__name {
   flex: 1 1 auto; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
