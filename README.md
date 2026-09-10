@@ -7,9 +7,17 @@ tokens per size class). The same definition can be read back out as JSON.
 
 ## Stack
 
-TypeScript throughout, in an npm workspaces monorepo. `packages/shared` holds
-the domain schemas and is imported by both apps; it builds to `dist/`, and every
-entry script builds it first.
+TypeScript throughout. Three independent npm projects in one repo — `apps/api`,
+`apps/web` and `packages/shared` — each with its own `package.json`,
+`package-lock.json` and `node_modules`. There is no workspace root and nothing
+is hoisted, so a project resolves exactly what it declares and nothing it
+happens to sit beneath.
+
+`packages/shared` holds the domain schemas and is imported by both apps, which
+name it as `"@correlliayards/shared": "file:../../packages/shared"` — npm
+symlinks that rather than copying, so an edit to shared is visible immediately.
+It is consumed as built JavaScript, not as source: it compiles to `dist/`, and
+every entry script builds it first.
 
 ### apps/api — Fastify service
 
@@ -53,13 +61,20 @@ entry script builds it first.
 
 ## Running it
 
-npm workspaces — install from the repo root, not from inside a workspace.
+Each project installs itself. The root script does all three, in the order they
+depend on each other:
 
 ```
-npm install
+npm run install-all
 ```
 
-Root scripts:
+Or from inside any one of `packages/shared`, `apps/api`, `apps/web`, a plain
+`npm install`. Install shared before either app: their `file:` dependency
+symlinks that directory, so it has to exist as a project first. Use
+`npm run ci-all` for a reproducible install from the three lockfiles.
+
+The root `package.json` has no dependencies of its own and declares no
+workspaces. It exists to sequence the three projects:
 
 | Command | What it does |
 | --- | --- |
@@ -69,6 +84,8 @@ Root scripts:
 | `npm run preview-front` | Serves the built SPA bundle. |
 | `npm run build-api` | Builds `packages/shared`, then compiles the API to `apps/api/dist/`. |
 | `npm run start-api` | Builds the API and runs it. |
+| `npm run install-all` | `npm install` in shared, then the API, then the SPA. |
+| `npm run ci-all` | The same three as `npm ci`, from the lockfiles. What CI and the images use. |
 
 ### Signing in while you develop
 
@@ -119,10 +136,12 @@ The API reads the environment, and `apps/api/.env.local` when it exists.
 | `ZITADEL_ISSUER` | required | Issuer URL. |
 | `ZITADEL_CLIENT_ID` | required | |
 | `ZITADEL_CLIENT_SECRET` | required | |
-| `APP_BASE_URL` | required | Base URL of the API. The OIDC redirect and post-logout URIs derive from it. |
+| `APP_BASE_URL` | required | The origin the **browser** reaches this app on — the dev server locally, the deployed SPA's public origin in production. Not the API's own address: the OIDC redirect and post-logout URIs derive from it, and those are the URLs Zitadel sends the browser back to. Both must be registered on the Zitadel application. |
 | `PUBLIC_BASE_URL` | optional | Base URL for published links. Defaults to `APP_BASE_URL`. |
 | `SESSION_SECRET` | required | At least 32 characters. |
 | `PORT` | optional | Defaults to 8080. |
+| `HOST` | optional | Interface to bind. Defaults to `0.0.0.0` in production and `127.0.0.1` otherwise. The default is the one you want: in a container, loopback answers nothing but itself, and Caddy's proxy to it fails as a gateway error rather than as anything that names the binding. |
+| `TRUST_PROXY` | optional | Whether to believe `X-Forwarded-For`. Defaults to on in production, off otherwise. Off behind the proxy, every request appears to come from it, and the public rate limit becomes one bucket shared by the whole internet. On anywhere the service is directly reachable, a caller can name its own address. |
 
 ### The Zitadel application
 
@@ -163,9 +182,15 @@ The SPA's container reads one variable of its own:
 apps/web/           the SPA
 apps/api/           the Fastify service
 apps/api/drizzle/   generated SQL migrations
+apps/api/Dockerfile the API image
+apps/web/Dockerfile the SPA image: Caddy, serving the bundle and proxying /api and /auth
+apps/web/docker-compose.yaml  both services; Postgres is a Coolify resource, not in here
 packages/shared/    domain schemas, imported not copied
 docs/api-routes.md  the HTTP API
-package-lock.json   one lockfile, at the root, for every workspace
+package.json        no dependencies; sequences the three projects below
+packages/shared/package-lock.json  one lockfile per project, beside its package.json
+apps/api/package-lock.json
+apps/web/package-lock.json
 ```
 ## What's built
 
@@ -173,8 +198,13 @@ package-lock.json   one lockfile, at the root, for every workspace
   values, per-arc armament dice, the speed chart, and upgrade slots.
 - **Base tokens** — small/medium/large, with the ship name band, hull panel, and
   draggable firing arcs.
-- **Artwork** — thumbnail, schematic, and tiny icon are read straight off your
-  machine into the preview. Nothing is uploaded anywhere.
+- **Artwork** — thumbnail, schematic, and tiny icon are read off your machine
+  into the preview and stored with your account as soon as you pick them, so a
+  saved card keeps its pictures. Images live as bytes in Postgres, addressed by
+  the SHA-256 of their content and scoped to you.
+  **Outstanding:** nothing collects unreferenced images, and they accumulate as
+  a matter of course — a daily sweep is needed. See *Orphan collection* in
+  `docs/api-routes.md` for what it has to do and why it needs a grace period.
 - **JSON** — the JSON tab is a live view of the same state the fields own, and
   *Copy JSON* puts that exact text on the clipboard.
 - **API** — cards, collections and publishing over HTTP, backed by Postgres.
@@ -204,6 +234,7 @@ in-development rather than pretending otherwise.
 | `apps/api/src/routes/api/` | The HTTP routes. |
 | `apps/api/src/db/schema.ts` | Table definitions. Migrations are generated from this file. |
 | `apps/api/src/routes/auth/` | The OIDC flow, the profile cache, and the `users` row behind *member since*. |
+| `apps/api/src/routes/api/assets.ts` | Image storage: content-addressed, owner-scoped, type decided by sniffing the bytes. |
 | `apps/web/src/components/CardSlots.tsx` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. |
 | `apps/web/src/components/TokenSlots.tsx` | The same, for the base token, in the token's own mm space. |
 | `apps/web/src/components/CardFace.tsx` | Reads the slots above and paints the real, data-driven icons and text. |
