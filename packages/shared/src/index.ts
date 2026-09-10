@@ -21,6 +21,7 @@
 
 export * from './vocabulary.js'
 export * from './artwork.js'
+export * from './asset.js'
 export * from './token.js'
 export * from './ship.js'
 export * from './squadron.js'

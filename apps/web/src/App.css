@@ -61,7 +61,14 @@
   opacity: .28;
 }
 
-.brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+/* The brand is the way back to the editor, on both shells, so it is a link —
+   but it carries no link styling: it is a wordmark that happens to be clickable,
+   and underlining it would make it read as body copy. */
+.brand {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  text-decoration: none; color: inherit;
+}
+.brand:hover .brand__logo { color: var(--rust-hi); }
 .brand__logo {
   flex: 0 0 auto;
   color: var(--rust);
@@ -76,6 +83,42 @@
   color: var(--chalk);
   /* stencil paint on metal: cut in hard below, bleeding oxide above */
   text-shadow: 0 1px 0 rgba(0, 0, 0, .8), 0 -1px 0 rgba(194, 98, 44, .3);
+}
+
+/* ---------- NAV ---------- */
+/* Stencilled section names, not buttons: the switch to their right is the one
+   pressable thing on this plate, and two competing pressed states would leave
+   neither reading as "you are here". The active one is marked the way a label
+   painted on steel would be — brighter paint, and a scuff of oxide under it. */
+.nav { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.nav__link {
+  position: relative;
+  font-family: var(--ff-display);
+  font-size: 12.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ash);
+  padding: 6px 11px 5px;
+  border-radius: 2px;
+  transition: color .12s, background .12s;
+}
+.nav__link:hover { color: var(--chalk); background: rgba(255, 214, 160, .05); }
+/* A section that has a route but not yet a page. Reads as dimmer and inert
+   rather than as a link that failed — the wrench is the same mark the card-type
+   switch uses for the same state, so the two read as one convention. */
+.nav__link--wip {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--faint); cursor: default;
+}
+.nav__link--wip:hover { color: var(--faint); background: none; }
+.nav__wip { flex: 0 0 auto; opacity: .7; }
+.nav__link.active { color: var(--chalk); }
+.nav__link.active::after {
+  content: "";
+  position: absolute; left: 11px; right: 11px; bottom: 1px; height: 2px;
+  background: var(--rust);
+  box-shadow: 0 0 6px rgba(194, 98, 44, .5);
 }
 
 /* card-type switch — a recessed slot in the plate with the selector sitting in it */
@@ -195,6 +238,9 @@
 }
 /* pressed = the plate sinks into its own shadow */
 .btn:active { box-shadow: inset 0 2px 5px rgba(0, 0, 0, .65); }
+/* Some buttons are links — "back to the editor", "build your own". They are the
+   same plate; they only need the anchor defaults taken back off. */
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* ============================================================
    WORKSPACE
@@ -352,6 +398,12 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 .filepick__btn:hover { border-color: var(--rust); color: var(--chalk); }
 .filepick__btn input { display: none; }
+/* Where a picture's bytes have got to. Small and to the right of the file name,
+   because it answers a question about the *card* — will it still have this
+   tomorrow — not about what is on screen, which is already settled. */
+.filepick__state { flex: 0 0 auto; font-size: 10.5px; letter-spacing: .04em; color: var(--faint); }
+.filepick__state--ok { color: var(--rust-hi); }
+.filepick__state--bad { color: var(--amber); cursor: help; }
 .filepick__name {
   flex: 1 1 auto; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -582,6 +634,314 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 .btn:disabled { opacity: .55; cursor: default; border-color: var(--rule); color: var(--ash); }
 .btn:disabled:hover { border-color: var(--rule); color: var(--ash); box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09), 0 1px 2px rgba(0, 0, 0, .5); }
 
+/* ============================================================
+   PLACEHOLDER PAGES
+   ============================================================
+   The chrome for a route that resolves but has nothing behind it yet, and for
+   the 404. One recipe covers all of them: a plate on the workbench, centred,
+   holding the description of what will go there. Shares the workspace's
+   surface treatment so a half-built page still looks like part of the tool
+   rather than an error screen. */
+.page {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 64px 24px;
+  background-color: #16110c;
+  background-image:
+    var(--tex-grain),
+    var(--tex-mottle),
+    radial-gradient(120% 90% at 50% 0%, #2b2117 0%, #130f0a 62%);
+  background-blend-mode: overlay, soft-light, normal;
+}
+.page__panel {
+  width: 100%; max-width: 560px;
+  padding: 26px 28px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background-color: var(--plate);
+  background-image: linear-gradient(104deg, #241c14 0%, #1a140e 64%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 160, .07),
+    0 18px 34px -18px rgba(0, 0, 0, .9);
+}
+.page__title {
+  margin: 0 0 10px;
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .8);
+}
+.page__lead { margin: 0 0 14px; color: var(--ash); max-width: 52ch; }
+.page__panel code {
+  font-family: var(--ff-mono);
+  font-size: 11.5px;
+  color: var(--amber);
+}
+/* The route parameters the URL actually parsed to. On the public pages this is
+   the whole demonstration: the uuid resolved, the slug came along and did
+   nothing. */
+.page__params {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+  margin: 0 0 16px;
+  align-items: baseline;
+}
+.page__params dt {
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+.page__params dd { margin: 0; }
+.page__note { color: var(--faint); font-size: 11.5px; }
+/* The line naming the API route behind the page, ruled off from the copy above
+   it because it is a note to whoever builds the page, not to whoever reads it. */
+.page__feeds {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin: 18px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+.page__feeds-label {
+  font-family: var(--ff-display);
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ============================================================
+   IDENTITY
+   ============================================================ */
+/* The topbar's right-hand end. A name plate riveted to the plate, and the way
+   out next to it. */
+.acct { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.acct__chip {
+  display: flex; align-items: center; gap: 8px;
+  max-width: 220px;
+  padding: 4px 11px 4px 4px;
+  border: 1px solid var(--rule-hi);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--chalk);
+  background-image: linear-gradient(180deg, #33271c, #201911);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .09);
+  transition: border-color .12s, box-shadow .12s;
+}
+.acct__chip:hover { border-color: var(--rust); box-shadow: inset 0 1px 0 rgba(255, 214, 160, .16); }
+/* The `picture` claim when there is one, and a stencilled initial when there
+   is not — the two are the same circle so a profile gaining an avatar does not
+   move anything around it. Sized by the caller in px, because the same
+   component paints a 22px chip and a 64px page header. */
+.avatar {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--plate-hi);
+  /* A dark ring, so a light-edged photo does not bleed into the plate. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 214, 160, .1);
+}
+.avatar--initial {
+  display: grid; place-items: center;
+  background: var(--rust);
+  color: var(--rust-ink);
+  font-family: var(--ff-display);
+  font-weight: 700;
+  /* Tracks the box the caller asked for, so one rule covers both sizes. */
+  font-size: 55%;
+  line-height: 1;
+  user-select: none;
+}
+/* Names can be long and the topbar cannot grow; the full one is on the chip's
+   title and, in full, on the account page. */
+.acct__name {
+  font-family: var(--ff-display);
+  font-size: 12.5px;
+  letter-spacing: .06em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.acct__error { color: var(--amber); font-size: 11.5px; max-width: 22ch; }
+
+/* A control that is present but has nothing good to report — the Offline
+   retry. Dimmed rather than disabled: it is still the way to ask again. */
+.btn--quiet { color: var(--ash); border-color: var(--rule); }
+.btn--quiet:hover { color: var(--chalk); border-color: var(--rule-hi); }
+
+/* The topbar's right edge is the one place a centred tooltip runs off the
+   window, so these hang from their right edge — the same correction .switch
+   already makes for the same reason. */
+.topbar > .tip::after { left: auto; right: 0; transform: none; white-space: normal; width: 260px; }
+
+/* The one call to action that should out-shout the plate around it. */
+.btn--accent {
+  border-color: var(--rust);
+  color: var(--rust-ink);
+  background-color: var(--rust);
+  background-image: linear-gradient(180deg, var(--rust-hi), var(--rust));
+  font-weight: 600;
+}
+.btn--accent:hover {
+  color: var(--rust-ink);
+  border-color: var(--rust-hi);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 180, .35), 0 0 0 1px rgba(194, 98, 44, .3);
+}
+
+/* ---------- ACCOUNT PAGE ---------- */
+.account__head {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 6px;
+}
+.account__head .page__title { margin-bottom: 2px; }
+.account__head .page__note { margin: 0; }
+.page__subtitle {
+  margin: 24px 0 8px;
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+.page__panel a { color: var(--rust-hi); text-decoration-color: rgba(224, 128, 63, .4); }
+.page__panel a.btn { color: var(--chalk); }
+.page__panel a.btn--accent { color: var(--rust-ink); }
+.page__error { color: var(--amber); margin: 10px 0 0; }
+
+/* The claims, laid out like a stencilled label plate. Same grid as
+   .page__params; kept separate because the notes under these wrap and the
+   route-parameter version is a single line each. */
+.facts {
+  display: grid; grid-template-columns: auto 1fr; gap: 10px 18px;
+  margin: 0;
+  align-items: baseline;
+}
+.facts dt {
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.facts .page__note { display: block; margin-top: 5px; max-width: 46ch; }
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--rule-hi);
+  border-radius: 999px;
+  font-family: var(--ff-display);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ash);
+  vertical-align: 1px;
+}
+.badge--ok { border-color: rgba(194, 98, 44, .55); color: var(--rust-hi); }
+
+/* ============================================================
+   CARD LIST
+   ============================================================ */
+/* A list wants room the account page does not, so the panel widens rather than
+   a second panel recipe existing. */
+.page__panel--wide { max-width: 880px; }
+
+.cards__head {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 16px;
+}
+.cards__head .page__title { margin: 0; flex: 1; }
+
+.filters {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+/* The search box takes the slack; the selects stay the width of their content
+   so the row does not reshuffle when a filter changes. */
+.filters__search { flex: 1 1 190px; min-width: 150px; width: auto; }
+.filters__select { flex: 0 0 auto; width: auto; }
+
+.cardlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* One row per card: a kind tag, the name and its one-line description, then the
+   three things worth comparing down a column — published, cost, and how
+   recently it moved. */
+.cardrow {
+  display: flex; align-items: center; gap: 14px;
+  /* The whole row is a link to the card. It is a plate, not body copy, so it
+     takes none of an anchor's usual dressing. */
+  text-decoration: none; color: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background-image: linear-gradient(104deg, #241c14 0%, #1a140e 64%);
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, .05);
+  transition: border-color .12s;
+}
+.cardrow:hover { border-color: var(--rust); }
+.cardrow:hover .cardrow__name { color: #fff5ea; }
+
+/* The card's own thumbnail, in the same box the kind tag would have used, so a
+   list of cards with and without pictures still lines up. */
+.cardrow__thumb {
+  flex: 0 0 auto;
+  width: 34px; height: 34px;
+  border-radius: 2px;
+  object-fit: cover;
+  background: #120d08;
+  border: 1px solid var(--rule);
+}
+
+/* Standing in for the thumbnail there is no URL for yet — see the note in
+   CardsPage.tsx. Sized like the avatar so the two read as the same furniture. */
+.cardrow__kind {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  border-radius: 2px;
+  background: #120d08;
+  border: 1px solid var(--rule);
+  font-family: var(--ff-display);
+  font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.cardrow__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cardrow__name {
+  font-family: var(--ff-display);
+  font-size: 15px; letter-spacing: .04em;
+  color: var(--chalk);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cardrow__meta {
+  font-size: 11.5px; color: var(--ash);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Monospaced so a column of costs lines up on the digit rather than the glyph. */
+.cardrow__points {
+  flex: 0 0 auto;
+  font-family: var(--ff-mono); font-size: 13px; font-weight: 700;
+  color: var(--amber);
+}
+.cardrow__when {
+  flex: 0 0 auto;
+  width: 96px; text-align: right;
+  font-size: 11px; color: var(--faint);
+}
+
+.cardlist__more { margin: 16px 0 0; text-align: center; }
+.empty { padding: 26px 0; text-align: center; }
+.empty .page__lead { margin-bottom: 12px; }
+
+/* The save failure, above the toolbar rather than in it — see EditorPage. */
+.preview__error {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 16px;
+  border-top: 1px solid var(--rule);
+  background: rgba(217, 164, 65, .09);
+  color: var(--amber);
+  font-size: 12px;
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1020px) {
   .workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; }
@@ -592,6 +952,11 @@ textarea.field { resize: vertical; min-height: 66px; line-height: 1.5; }
 }
 @media (max-width: 560px) {
   .dims { display: none; }
+  .cardrow__when { display: none; }
+  /* The chip keeps its initial and its link; the name is the part the topbar
+     cannot afford, and it is on the account page in full anyway. */
+  .acct__name { display: none; }
+  .acct__chip { padding: 4px; }
   .card-frame { width: 100%; max-width: 69mm; }
   .card-image { max-width: 100%; }
   .token-image { max-width: 100%; }

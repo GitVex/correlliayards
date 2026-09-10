@@ -42,6 +42,91 @@ the card — if that is wanted, the version to write is a narrow `PATCH` limited
 envelope fields (`name`, `points`, `faction`), and it should wait until the list
 page actually needs it.
 
+## Assets
+
+Built, in `apps/api/src/routes/api/assets.ts`. Card artwork, stored as bytes in
+Postgres rather than named and forgotten.
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api/assets` | Store one image. Body is the file itself, Content-Type is its type, `?filename=` is what to call it. Returns the metadata; 201 when the bytes are new, 200 when they were already held. |
+| `GET /api/assets/:id` | The bytes. Owner-scoped. |
+
+**The id is the SHA-256 of the content.** That gives deduplication, an entity
+tag that cannot go stale, and a URL safe to cache forever — all from the same
+property, that the bytes cannot change under an id derived from them.
+
+**Ownership is in the primary key**, `(owner_sub, id)`, not a column beside it.
+Keying on the digest alone would deduplicate across the whole instance, and a
+shared row is an oracle: uploading a file and being told it already existed
+tells you somebody else holds that exact file. Keyed this way you deduplicate
+within your own library and learn nothing about anyone else's.
+
+**The type is decided by sniffing the content**, never by the Content-Type the
+client sent. These bytes are served back from the app's own origin, so a file
+the browser decides is HTML would run as the app, with the app's session cookie.
+SVG is refused outright for the same reason — it is XML that can carry script.
+Responses carry `nosniff` and a `default-src 'none'` CSP as well.
+
+There is deliberately no unauthenticated path yet. Published cards will need
+one, but the public card page is still a placeholder, and opening a hole for a
+page nobody can reach is the wrong order to do it in. When it lands the question
+to answer is whether an asset id is a capability — unguessable, so serve it to
+anyone who has it — or whether the route should check that some published card
+actually refers to it.
+
+### Orphan collection
+
+**A scheduled sweep deletes unreferenced assets.** It lives at
+`apps/api/src/db/sweep-assets.ts`, beside the migration runner, and runs from a
+scheduler rather than from the server — the API has no scheduler and does not
+want one for a nightly job.
+
+Pictures are stored the moment they are picked, not when the card is saved. That
+is deliberate — it puts the upload where the waiting already is, and it means a
+saved card can never refer to bytes the server does not hold — but it produces
+garbage as a matter of course, not as an exception:
+
+- picking a picture and then picking a different one,
+- picking a picture and closing the tab without ever saving,
+- deleting a card, which leaves its artwork behind. No foreign key can prevent
+  this: a card names its artwork inside a jsonb document, which nothing can
+  reference into.
+
+The sweep deletes rows in `assets` older than a grace period whose `id` is named
+by no card **of the same owner**. That last part is not tidiness: the primary key
+is `(owner_sub, id)`, so the same digest can be held by two people, and matching
+on the id alone would let one person's card keep another person's row alive.
+
+The grace period is what makes it safe. An asset is uploaded seconds before the
+card that refers to it exists, so a sweep with no lower bound on age would delete
+a picture out from under an editor still being typed into. It defaults to one
+hour, and `--grace-hours=N` overrides it.
+
+Referenced ids are read with `jsonb_each_text` over `document -> 'data' ->
+'artwork'` rather than by naming slots. Ships have three, squadrons two, upgrades
+one, and the shapes are in `packages/shared/src/artwork.ts` — reading whatever
+the object holds means this does not need editing when a kind gains a slot. A
+value that is not an object is treated as naming nothing, so one malformed row
+cannot abort the pass.
+
+| Command | What it does |
+| --- | --- |
+| `npm run db:sweep` | Delete this owner-set's orphans. What the scheduler runs. |
+| `npm run db:sweep -- --dry-run` | Count and total them, delete nothing. |
+| `npm run db:sweep -- --grace-hours=24` | A longer lower bound on age. |
+
+In a deployed container the scheduled task is
+`node apps/api/dist/db/sweep-assets.js`, with no npm in between. Run it with
+`--dry-run` the first few times: it reports the row count and their total bytes,
+which is the number worth watching — this table is bytes in Postgres, so it is
+what answers whether the sweep is keeping up.
+
+One pass covers every owner, because the owner match is inside the anti-join. If
+that ever grows too large for a single statement, the fix is a `card_assets` join
+table maintained by the card write, which is worth doing only once the simple
+version hurts.
+
 ## Collections
 
 | Route | Purpose |
@@ -170,9 +255,18 @@ limit and body limit.
 
 ## Notes for the multi-page split
 
+The SPA now has the router these notes were written for: one route table in
+`apps/web/src/routes.tsx`, with the paths it matches named in
+`apps/web/src/paths.ts`. `/cards`, `/collections` and both public shapes
+resolve, behind placeholder pages that name the route below which will fill
+them. Nothing fetches yet.
+
 The `/api` prefix above is one half of it. The other half: whatever serves the
 SPA needs a catch-all that returns `index.html` for unknown paths so client-side
-routes survive a refresh — and that catch-all must not swallow `/api`.
+routes survive a refresh — and that catch-all must not swallow `/api`. Both hold
+already: `apps/web/Caddyfile` ends in `try_files {path} /index.html`, Vite's dev
+server does the same by default, and the API is a separate service that is never
+handed a page URL.
 
 If published links are meant to unfurl in Discord or Slack with a title and
 preview image, the public **page** needs server-rendered meta tags. Crawlers do

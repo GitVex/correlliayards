@@ -9,14 +9,16 @@
     "dev": "tsc -p tsconfig.json --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --eval \"import('./dist/db/migrate.js').then(m => m.runMigrations(console))\"",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:sweep": "node --env-file-if-exists=.env.local dist/db/sweep-assets.js",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@correlliayards/shared": "*",
+    "@correlliayards/shared": "file:../../packages/shared",
     "@fastify/cookie": "^11.1.2",
     "@fastify/session": "^11.1.2",
     "drizzle-orm": "^0.45.2",
@@ -29,6 +31,7 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }

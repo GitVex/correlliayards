@@ -31,6 +31,10 @@ type FileOptionProps = CommonProps & {
   kind: 'file'
   /** Name of the file currently loaded, or undefined for "nothing picked yet". */
   fileName?: string
+  /** Where the upload of that file has got to. Absent when nothing is picked. */
+  status?: 'uploading' | 'stored' | 'failed'
+  /** Why it failed, when it did. */
+  error?: string
   accept?: string
   /** Called with the picked File, or null when the current one is cleared. */
   onChange: (file: File | null) => void
@@ -110,6 +114,21 @@ export function EditorOption(props: EditorOptionProps) {
             <span className="filepick__name" title={props.fileName}>
               {props.fileName ?? 'none'}
             </span>
+            {/* The picture is on screen either way — it is painted from a local
+                object URL. What this reports is whether the *card* will still
+                have it tomorrow, which is a different question and worth its
+                own line. */}
+            {props.status === 'uploading' && <span className="filepick__state">saving…</span>}
+            {props.status === 'stored' && (
+              <span className="filepick__state filepick__state--ok" title="Stored with your card">
+                ✓
+              </span>
+            )}
+            {props.status === 'failed' && (
+              <span className="filepick__state filepick__state--bad" role="alert" title={props.error}>
+                not stored
+              </span>
+            )}
             {props.fileName && (
               <button
                 type="button"

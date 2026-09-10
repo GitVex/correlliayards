@@ -15,6 +15,20 @@
       "when": 1788882236547,
       "tag": "0001_cards_and_collections",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788970935619,
+      "tag": "0002_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788975839144,
+      "tag": "0003_assets",
+      "breakpoints": true
     }
   ]
 }

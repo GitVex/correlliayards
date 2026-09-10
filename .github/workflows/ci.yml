@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A second push to the same branch makes the first run pointless. Cancel it
+# rather than queueing behind it — except on master, where every commit's result
+# is worth having on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 24 rather than 22: the repo needs 22 or newer to run, but eslint's own
+      # packages ask for ^22.13 || >=24, and a warning about the engine is a
+      # warning nobody reads until it becomes an error.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          # Three lockfiles, three caches. There is no root lockfile to key on —
+          # the projects are independent, which is the point of the layout.
+          cache: npm
+          cache-dependency-path: |
+            packages/shared/package-lock.json
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+
+      # Shared first and separately, because both apps resolve
+      # @correlliayards/shared to its dist and neither builds it. Same ordering
+      # the Dockerfiles use, for the same reason.
+      - name: Install
+        run: npm run ci-all
+
+      - name: Build shared
+        run: npm run build-shared
+
+      # Everything below depends only on the step above, so none of them should
+      # stop the others reporting. The guard is what turns one red run into a
+      # list of what is broken rather than the first thing that broke; it is
+      # `!cancelled()` rather than `always()` so that pressing cancel actually
+      # cancels.
+      - name: Typecheck and build the API
+        if: "!cancelled()"
+        run: cd apps/api && npm run build
+
+      - name: Typecheck and build the SPA
+        if: "!cancelled()"
+        run: cd apps/web && npm run build
+
+      - name: Lint the SPA
+        if: "!cancelled()"
+        run: npm run lint-front
+
+      - name: Test shared
+        if: "!cancelled()"
+        run: npm run test-shared
+
+      - name: Test the API
+        if: "!cancelled()"
+        run: npm run test-api
+
+      - name: Test the SPA
+        if: "!cancelled()"
+        run: npm run test-front
+
+  # The images are the other half of "does this deploy", and neither is built by
+  # anything above: the SPA's bundle is built here from source, while the images
+  # build it again inside themselves from their own installs. A Dockerfile can
+  # break — has broken — while every command in `check` still passes.
+  #
+  # Built, not pushed. Publishing is Coolify's job and wants credentials this
+  # workflow has no reason to hold.
+  images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the API image
+        uses: docker/build-push-action@v6
+        with:
+          # The repo root, because each image installs two projects: its own and
+          # packages/shared.
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build the SPA image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -17,11 +17,15 @@ import type { ShipCardData } from './cardData'
 import type { BaseSize } from './components/TokenRenderer'
 import type { FiringArcs } from './firingArcs'
 
-/** A card as the browser can know it. `ownerSub` and the timestamps are the
- *  server's to write, so they are absent rather than guessed at — the same cut
- *  a write route makes with `.omit()`, expressed as a type so none of Zod has to
- *  reach the browser bundle. */
-export type LocalShipCard = Omit<ShipCard, 'ownerSub' | 'createdAt' | 'updatedAt'>
+/** A card as the browser can know it. `ownerSub`, the timestamps and the
+ *  publish state are the server's to write, so they are absent rather than
+ *  guessed at — the same cut a write route makes with `.omit()`, expressed as a
+ *  type so none of Zod has to reach the browser bundle.
+ *
+ *  The publish pair is in that cut for the reason card.ts gives: publishing is
+ *  its own route, so a save must not be able to carry a claim about it. Keep
+ *  this list in step with `serverOwned` there. */
+export type LocalShipCard = Omit<ShipCard, 'ownerSub' | 'published' | 'publishedAt' | 'createdAt' | 'updatedAt'>
 
 /** What the editor holds while you work. Flat rather than card-shaped because
  *  each field is its own `useState` in App. */

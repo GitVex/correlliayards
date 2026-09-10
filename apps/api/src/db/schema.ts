@@ -16,6 +16,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -27,6 +28,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import type {
+  AssetMime,
   CardKind,
   Faction,
   ShipCardData,
@@ -46,6 +48,78 @@ export type CardDocument =
   | { data: ShipCardData; token: ShipToken }
   | { data: SquadronCardData }
   | { data: UpgradeCardData }
+
+/** The people who have logged in, and nothing more about them than that.
+ *
+ *  It exists for one fact that OIDC cannot supply: when someone joined. There
+ *  is no claim for account creation — `auth_time` says when *this* login
+ *  happened — so the only honest source for "member since" is the first time we
+ *  saw the subject ourselves. Everything else about a person stays in Zitadel,
+ *  where it can be edited, rather than being copied here to go stale.
+ *
+ *  Deliberately not referenced by `cards.owner_sub`. A foreign key would be the
+ *  better integrity story, but it would also make this migration fail on any
+ *  database that already holds cards owned by a subject with no row here — and
+ *  the row is written at login, so those exist. Ownership is enforced by the
+ *  scoped WHERE on every query, which is where it has to hold anyway. */
+export const users = pgTable('users', {
+  /** The Zitadel subject claim, and the same value `cards.owner_sub` carries. */
+  sub: text('sub').primaryKey(),
+  /** Set once, by the insert, and never updated — the upsert at login touches
+   *  only `last_seen_at`, which is what keeps this meaning "first seen". */
+  registeredAt: timestamp('registered_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Raw bytes. Drizzle's pg-core has no bytea column, so it is declared here —
+ *  the driver hands `pg` a Buffer and gets one back, which is what the routes
+ *  want to write to a reply anyway. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => 'bytea',
+})
+
+/** The pictures on a card, stored rather than merely named.
+ *
+ *  Identity is the SHA-256 of the content. That makes a row immutable — the
+ *  bytes cannot change under an id that is derived from them — which is what
+ *  lets the id serve as an ETag and the response be cached forever.
+ *
+ *  **Ownership is in the primary key, not a column beside it.** Keying on the
+ *  digest alone would dedup across the whole instance, and a shared row is an
+ *  oracle: uploading a picture and being told it already existed reveals that
+ *  somebody else holds that exact file. Keyed this way you dedup within your own
+ *  library and learn nothing about anyone else's, at the cost of storing a
+ *  popular picture once per owner. That is the right trade for a table holding
+ *  what people have not chosen to publish.
+ *
+ *  Nothing references this table. A card names its artwork inside a jsonb
+ *  document, which no foreign key can reach into, so rows here are not deleted
+ *  when the card that used them is. That is what db/sweep-assets.ts collects,
+ *  on a schedule rather than on delete. */
+export const assets = pgTable(
+  'assets',
+  {
+    /** Lowercase hex SHA-256 of `bytes`. */
+    id: text('id').notNull(),
+    ownerSub: text('owner_sub').notNull(),
+    /** Determined by sniffing the content, never copied from the request's
+     *  Content-Type — see routes/api/assets.ts. */
+    mime: text('mime').$type<AssetMime>().notNull(),
+    /** What the file was called when it was picked. Shown beside the editor's
+     *  picker so you can tell which picture is loaded; nothing resolves it. */
+    filename: text('filename').notNull(),
+    byteSize: integer('byte_size').notNull(),
+    bytes: bytea('bytes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ownerSub, t.id] }),
+    check('assets_byte_size_check', sql`${t.byteSize} > 0`),
+    /* "What has this owner uploaded, oldest first" — which is the order
+       db/sweep-assets.ts judges rows in, oldest being the eligible end. */
+    index('assets_owner_created_idx').on(t.ownerSub, t.createdAt),
+  ],
+)
 
 export const cards = pgTable(
   'cards',

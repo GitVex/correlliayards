@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { getSlotBox } from './CardSlots'
+import { getSlotBox } from '../cardSlots'
 import {
   hasSpeedClicks,
   parseDiceRows,
@@ -21,7 +21,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // The live card face — reads ShipCardData and paints the real icons/text at the
-// positions hand-tuned in CardSlots.tsx (via getSlotBox). Position lives
+// positions hand-tuned in cardSlots.ts (via getSlotBox). Position lives
 // there; this file only decides *what* goes in each box and *whether* it
 // shows at all.
 // ---------------------------------------------------------------------------

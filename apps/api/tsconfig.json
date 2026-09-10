@@ -22,5 +22,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["./src"]
+  "include": ["./src"],
+  /* Tests run through vitest, which transpiles them itself. Emitting them
+     into dist/ would ship files that import a devDependency, in an image
+     installed with --omit=dev. */
+  "exclude": ["./src/**/*.test.ts"]
 }

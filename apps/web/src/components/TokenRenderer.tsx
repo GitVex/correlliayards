@@ -32,10 +32,12 @@ import {
   type FiringArcs,
   type PanelPlacement,
 } from '../firingArcs'
+import { TOKEN_SIZE_MM } from '../tokenSizes'
 
 /* Stored on the base token and validated by the API, so the union lives in
    @correlliayards/shared. Re-exported here, where the SPA already looks for it;
-   TOKEN_SIZE_MM below stays local because millimetres are a print concern. */
+   TOKEN_SIZE_MM stays in the SPA — in ../tokenSizes — because millimetres are
+   a print concern and the API has no opinion about them. */
 export type { BaseSize } from '@correlliayards/shared'
 
 /** Firing-arc ink, by faction: a wide soft pass for the glow, a thin bright one
@@ -56,12 +58,6 @@ const TOKEN_IMG: Record<BaseSize, string> = {
   Small: smallToken,
   Medium: mediumToken,
   Large: largeToken,
-}
-
-export const TOKEN_SIZE_MM: Record<BaseSize, { width: number; height: number }> = {
-  Small: { width: 39, height: 71 },
-  Medium: { width: 59, height: 102 },
-  Large: { width: 73.5, height: 129 },
 }
 
 /** Printed width of the hull panels in mm. Fixed rather than a share of the token,

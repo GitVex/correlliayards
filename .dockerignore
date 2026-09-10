@@ -15,3 +15,12 @@ dist
 
 *.log
 *.stackdump
+
+# Real secrets, and they are gitignored rather than absent — which is exactly
+# why they need naming here as well. The serve stages copy only dist/ and
+# drizzle/, so none of this reaches a published image, but `COPY apps/api
+# apps/api` in the build stage would otherwise put a client secret and a
+# database password into a cached layer.
+*.local
+.env
+.env.*

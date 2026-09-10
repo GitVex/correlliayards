@@ -40,9 +40,13 @@ export function createRateLimiter(options: RateLimitOptions) {
   }
 
   return function check(request: FastifyRequest): void {
-    /* request.ip, which is request.socket's address unless trustProxy is set.
-       Behind Coolify's reverse proxy that will be the proxy for every caller
-       until the server is told to trust it — see the note in index.ts. */
+    /* request.ip, which is request.socket's address unless trustProxy is set —
+       and it is, in production, which is the only place this matters. Behind
+       Coolify's proxy an untrusting server sees the proxy as every caller, so
+       this map would hold one window for the whole internet and the budget
+       below would be shared by everyone rather than held per client. See
+       `trustProxy` in config.ts for why that is a deployment fact rather than a
+       setting anyone should be choosing per environment. */
     const key = request.ip
     const now = Date.now()
 

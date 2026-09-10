@@ -14,8 +14,30 @@
 	# visitor is served the old shell pointing at assets that no longer exist.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
-	@document not path /assets/*
+	# The proxied prefixes are excluded because `header` rewrites what comes back
+	# from upstream too, and /auth/me answers `no-store` for a reason — it is a
+	# per-session identity. Overwriting that with `no-cache` would let an
+	# intermediary keep a copy of one user's claims, which is the exact thing
+	# `no-store` is there to forbid. The API sets its own caching; leave it be.
+	@document not path /assets/* /api/* /auth/*
 	header @document Cache-Control "no-cache"
+
+	# The API's two prefixes, forwarded so that the browser only ever sees one
+	# origin. That is not tidiness: the BFF's session cookie is HttpOnly and
+	# SameSite=Lax, so a cross-origin fetch would not carry it, and the login
+	# redirect would deposit it on the API's host instead of this one.
+	#
+	# Matched before try_files below, so /api and /auth are never answered with
+	# the SPA shell — the collision docs/api-routes.md gave the routes their
+	# /api prefix to avoid.
+	#
+	# API_ORIGIN is where the Fastify service answers. The default suits a
+	# compose network where it is a service named `api`; set it explicitly for
+	# anything else. Unset and wrong, the site still serves — /auth/me returns a
+	# gateway error, which the SPA reads as "cannot tell" rather than as "signed
+	# out".
+	@backend path /api/* /auth/*
+	reverse_proxy @backend {$API_ORIGIN:http://api:8080}
 
 	try_files {path} /index.html
 	file_server

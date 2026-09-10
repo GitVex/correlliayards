@@ -138,7 +138,27 @@ export const config = {
   postLogoutRedirectUri: new URL('/', appBaseUrl).href,
   sessionSecret,
   port: Number(process.env.PORT ?? 8080),
+  /* Which interface to accept connections on.
+     Loopback locally, because a dev server has no business being reachable from
+     the rest of the network. Every interface in production, because there the
+     service runs in a container and the only callers are on the other side of
+     its boundary — Caddy in the SPA's image, proxying /api and /auth. Bound to
+     loopback, a container answers nothing but itself, and the failure looks
+     like a gateway error rather than like a binding mistake. */
+  host: process.env.HOST ?? (isProduction ? '0.0.0.0' : '127.0.0.1'),
   isProduction,
+  /* Whether to believe X-Forwarded-For. Off by default and on in production,
+     because the answer is a property of the deployment, not a preference: this
+     service sits behind Coolify's proxy there and nothing else can reach it, so
+     the header is the only place the caller's address survives. Trusting it
+     anywhere the service is directly reachable would let a caller name its own
+     address — and request.ip is what the public rate limit counts.
+
+     The cost of leaving it off in production is not theoretical: every request
+     arrives from the proxy, so request.ip is one value for the whole internet
+     and the public budget in http/rate-limit.ts becomes a single shared bucket
+     that the first scraper empties for everybody. */
+  trustProxy: optionalFlag('TRUST_PROXY', isProduction),
 
   database: {
     url: databaseUrl,

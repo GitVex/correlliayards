@@ -7,9 +7,17 @@ tokens per size class). The same definition can be read back out as JSON.
 
 ## Stack
 
-TypeScript throughout, in an npm workspaces monorepo. `packages/shared` holds
-the domain schemas and is imported by both apps; it builds to `dist/`, and every
-entry script builds it first.
+TypeScript throughout. Three independent npm projects in one repo — `apps/api`,
+`apps/web` and `packages/shared` — each with its own `package.json`,
+`package-lock.json` and `node_modules`. There is no workspace root and nothing
+is hoisted, so a project resolves exactly what it declares and nothing it
+happens to sit beneath.
+
+`packages/shared` holds the domain schemas and is imported by both apps, which
+name it as `"@correlliayards/shared": "file:../../packages/shared"` — npm
+symlinks that rather than copying, so an edit to shared is visible immediately.
+It is consumed as built JavaScript, not as source: it compiles to `dist/`, and
+every entry script builds it first.
 
 ### apps/api — Fastify service
 
@@ -30,6 +38,7 @@ entry script builds it first.
 | Package | Used for |
 | --- | --- |
 | `react`, `react-dom` | UI. |
+| `react-router` | Client-side routing, in data mode. One route table in `src/routes.tsx`; the paths it matches are named in `src/paths.ts`. |
 | `vite`, `@vitejs/plugin-react` | Dev server and bundler. |
 | `html-to-image` | Renders the card and token DOM to PNG for export. |
 | `jspdf` | Lays exported images out as a printable PDF with crop marks. |
@@ -52,22 +61,76 @@ entry script builds it first.
 
 ## Running it
 
-npm workspaces — install from the repo root, not from inside a workspace.
+Each project installs itself. The root script does all three, in the order they
+depend on each other:
 
 ```
-npm install
+npm run install-all
 ```
 
-Root scripts:
+Or from inside any one of `packages/shared`, `apps/api`, `apps/web`, a plain
+`npm install`. Install shared before either app: their `file:` dependency
+symlinks that directory, so it has to exist as a project first. Use
+`npm run ci-all` for a reproducible install from the three lockfiles.
+
+The root `package.json` has no dependencies of its own and declares no
+workspaces. It exists to sequence the three projects:
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev-front` | Builds `packages/shared`, then starts the Vite dev server. |
 | `npm run build-front` | Builds `packages/shared`, then type-checks and bundles the SPA to `apps/web/dist/`. |
 | `npm run lint-front` | ESLint over the SPA. |
+| `npm run test-all` | Vitest in all three projects. Also `test-shared`, `test-api`, `test-front`. |
 | `npm run preview-front` | Serves the built SPA bundle. |
 | `npm run build-api` | Builds `packages/shared`, then compiles the API to `apps/api/dist/`. |
 | `npm run start-api` | Builds the API and runs it. |
+| `npm run install-all` | `npm install` in shared, then the API, then the SPA. |
+| `npm run ci-all` | The same three as `npm ci`, from the lockfiles. What CI and the images use. |
+
+### Tests
+
+Vitest, one install per project, tests beside the code they cover as
+`*.test.ts`. `npm run test-all` runs all three.
+
+They are aimed at the things that fail quietly rather than loudly: the upload
+sniffer, which decides what the browser will treat a stored file as; the
+composite ETag, where a mistake either loses an edit or serves a stale card
+forever; the query schema, where both apps have to agree what a URL means; and
+the card round trip, where a dropped field is written back over the real value.
+A build failure announces itself. None of these would.
+
+`apps/api/vitest.config.ts` supplies a fixture environment, because `config.ts`
+validates the whole environment at import and almost every module reaches it.
+
+`.github/workflows/ci.yml` runs the builds, the lint and the tests on every
+push, and builds both images — a Dockerfile can break while every other command
+passes, which is exactly what happened once already.
+
+### Signing in while you develop
+
+The SPA and the API have to look like **one origin** to the browser. The session
+cookie `cy.sid` is HttpOnly and SameSite=Lax, so a cross-origin `fetch` would not
+carry it, and the login redirect would deposit it on the API's host rather than
+the SPA's. The dev server forwards `/auth/*` and `/api/*` to the API for exactly
+that reason — see the proxy in `apps/web/vite.config.ts`.
+
+Two settings make a real login work locally:
+
+| Setting | Where | Value |
+| --- | --- | --- |
+| `API_ORIGIN` | environment of `npm run dev-front` | The API's origin. Defaults to `http://127.0.0.1:8080` — the literal address, because the API binds IPv4 only and `localhost` can resolve to `::1` first. |
+| `APP_BASE_URL` | the API's environment | The **dev server's** origin, `http://localhost:5173` — not the API's. |
+
+`APP_BASE_URL` is the one that catches people out. The API derives its OIDC
+redirect and post-logout URIs from it, and those are the URLs Zitadel sends the
+browser back to. Point it at the API's own port and the login completes against
+an origin the SPA is not on. That URL also has to be registered on the Zitadel
+application, under Redirect URIs and Post Logout URIs respectively.
+
+Without the API running at all, the SPA still loads: `/auth/me` fails, which the
+session reads as *cannot tell* rather than *signed out*, and the editor works
+anonymously.
 
 Database scripts, run from `apps/api`:
 
@@ -76,6 +139,7 @@ Database scripts, run from `apps/api`:
 | `npm run db:generate` | Regenerates the migrations from `src/db/schema.ts`. |
 | `npm run db:migrate` | Applies pending migrations. |
 | `npm run db:studio` | Opens Drizzle Studio. |
+| `npm run db:sweep` | Deletes assets no card refers to, older than an hour. Add `-- --dry-run` to count them instead. |
 
 Node 22 or newer; the API scripts use `--env-file-if-exists`.
 
@@ -93,13 +157,45 @@ The API reads the environment, and `apps/api/.env.local` when it exists.
 | `ZITADEL_ISSUER` | required | Issuer URL. |
 | `ZITADEL_CLIENT_ID` | required | |
 | `ZITADEL_CLIENT_SECRET` | required | |
-| `APP_BASE_URL` | required | Base URL of the API. The OIDC redirect and post-logout URIs derive from it. |
+| `APP_BASE_URL` | required | The origin the **browser** reaches this app on — the dev server locally, the deployed SPA's public origin in production. Not the API's own address: the OIDC redirect and post-logout URIs derive from it, and those are the URLs Zitadel sends the browser back to. Both must be registered on the Zitadel application. |
 | `PUBLIC_BASE_URL` | optional | Base URL for published links. Defaults to `APP_BASE_URL`. |
 | `SESSION_SECRET` | required | At least 32 characters. |
 | `PORT` | optional | Defaults to 8080. |
+| `HOST` | optional | Interface to bind. Defaults to `0.0.0.0` in production and `127.0.0.1` otherwise. The default is the one you want: in a container, loopback answers nothing but itself, and Caddy's proxy to it fails as a gateway error rather than as anything that names the binding. |
+| `TRUST_PROXY` | optional | Whether to believe `X-Forwarded-For`. Defaults to on in production, off otherwise. Off behind the proxy, every request appears to come from it, and the public rate limit becomes one bucket shared by the whole internet. On anywhere the service is directly reachable, a caller can name its own address. |
+
+### The Zitadel application
+
+Three things have to be set on the Zitadel side, and the third is the one that
+fails quietly.
+
+- **Redirect URI** — `APP_BASE_URL` + `/auth/callback`.
+- **Post logout URI** — `APP_BASE_URL` + `/`. A separate list from the redirect
+  URIs; miss it and Zitadel drops the parameter and strands the user on its own
+  page after logging out.
+- **User info inside the ID token** — a toggle in the application's token
+  settings. With it off, the id_token carries `sub` and little else, so an app
+  that reads profile claims straight off it shows an account page where every
+  field says "not set".
+
+The API does not depend on that third one being right: it overlays the userinfo
+endpoint's answer over the id_token's claims at login, and refreshes it from
+userinfo when a cached profile goes stale. Turning it on saves a request per
+login; leaving it off costs one. Either way the profile arrives. See
+`apps/api/src/routes/auth/profile.ts`.
+
+A profile is re-read from Zitadel at most every five minutes, so a name or
+avatar changed there takes about that long to appear here rather than waiting
+for the next login.
 
 The database role needs `CREATE` on the schema, and rights to run
 `CREATE EXTENSION pg_trgm` for the first migration.
+
+The SPA's container reads one variable of its own:
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `API_ORIGIN` | optional | Where Caddy forwards `/api/*` and `/auth/*`. Defaults to `http://api:8080`. The same one-origin requirement as above — the deployed SPA and API must answer on one hostname, and this is what makes them. |
 
 ## Layout
 
@@ -107,9 +203,15 @@ The database role needs `CREATE` on the schema, and rights to run
 apps/web/           the SPA
 apps/api/           the Fastify service
 apps/api/drizzle/   generated SQL migrations
+apps/api/Dockerfile the API image
+apps/web/Dockerfile the SPA image: Caddy, serving the bundle and proxying /api and /auth
+apps/web/docker-compose.yaml  both services; Postgres is a Coolify resource, not in here
 packages/shared/    domain schemas, imported not copied
 docs/api-routes.md  the HTTP API
-package-lock.json   one lockfile, at the root, for every workspace
+package.json        no dependencies; sequences the three projects below
+packages/shared/package-lock.json  one lockfile per project, beside its package.json
+apps/api/package-lock.json
+apps/web/package-lock.json
 ```
 ## What's built
 
@@ -117,15 +219,38 @@ package-lock.json   one lockfile, at the root, for every workspace
   values, per-arc armament dice, the speed chart, and upgrade slots.
 - **Base tokens** — small/medium/large, with the ship name band, hull panel, and
   draggable firing arcs.
-- **Artwork** — thumbnail, schematic, and tiny icon are read straight off your
-  machine into the preview. Nothing is uploaded anywhere.
+- **Artwork** — thumbnail, schematic, and tiny icon are read off your machine
+  into the preview and stored with your account as soon as you pick them, so a
+  saved card keeps its pictures. Images live as bytes in Postgres, addressed by
+  the SHA-256 of their content and scoped to you.
+  Unreferenced images are collected by a nightly sweep — see *Orphan
+  collection* in `docs/api-routes.md`, and `npm run db:sweep`.
 - **JSON** — the JSON tab is a live view of the same state the fields own, and
   *Copy JSON* puts that exact text on the clipboard.
 - **API** — cards, collections and publishing over HTTP, backed by Postgres.
   Routes are listed in `docs/api-routes.md`.
+- **Saving** — *Save* on the editor writes the card to your account. It is filled
+  while there is something to save and plain once there is not, so the button
+  itself is the unsaved indicator. Saves carry `If-Match`, so a card edited in
+  two tabs refuses the second write instead of losing the first.
+- **Your cards** — the list at `/cards`, with search, kind and faction filters
+  and sorting. Filter state lives in the query string, so a narrowed list is a
+  link you can send someone.
+- **Accounts** — sign in and out against Zitadel, and an account page showing
+  your profile claims (name, username, email and its verified state, avatar)
+  alongside the one fact OIDC cannot supply: when you registered here. The
+  tokens stay on the API; the browser gets a session cookie and nothing else,
+  which is why there is no auth library in `apps/web`.
 
-Squadron and upgrade cards are not built yet; the topbar shows them as
-in-development rather than pretending otherwise.
+Squadron and upgrade cards are not built yet, and neither are collections or
+the two public pages a shared link points at. The topbar shows all of them as
+in-development rather than pretending otherwise, and the routes still resolve —
+a URL that resolves to a note about a page is better than a 404, and it is what
+lets the pages land later without the links changing.
+
+Nothing in the SPA can publish a card, so no shared link exists to be broken by
+those pages being placeholders. The publish routes in `docs/api-routes.md` are
+built and waiting on the pages, not the other way round.
 
 ## Where things live
 
@@ -135,12 +260,17 @@ in-development rather than pretending otherwise.
 | `apps/web/src/cardData.ts` | The SPA’s door onto that contract: starting card, picker lists, render helpers. |
 | `apps/api/src/routes/api/` | The HTTP routes. |
 | `apps/api/src/db/schema.ts` | Table definitions. Migrations are generated from this file. |
-| `apps/web/src/components/CardSlots.tsx` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. |
+| `apps/api/src/routes/auth/` | The OIDC flow, the profile cache, and the `users` row behind *member since*. |
+| `apps/api/src/routes/api/assets.ts` | Image storage: content-addressed, owner-scoped, type decided by sniffing the bytes. |
+| `apps/web/src/cardSlots.ts` | **Card stat positions.** Every box is a percentage of the artwork, so it survives any zoom. Edit placement here. Data only — the dashed guide that draws it is `components/CardSlots.tsx`. |
 | `apps/web/src/components/TokenSlots.tsx` | The same, for the base token, in the token's own mm space. |
 | `apps/web/src/components/CardFace.tsx` | Reads the slots above and paints the real, data-driven icons and text. |
 | `apps/web/src/firingArcs.ts` | Arc geometry and the drag maths behind the token handles. |
+| `apps/web/src/routes.tsx` | The route table. Paths are named in `paths.ts`. |
+| `apps/web/src/auth/` | The browser half of the BFF: one `/auth/me` per session, the route guard, and the sign-in/out plumbing. |
+| `apps/web/src/api/` | Calls to `/api`. One fetch wrapper that turns a failure into the shared error code, and the per-resource calls over it. |
 | `apps/web/src/index.css` | Palette and type tokens. |
 | `apps/web/src/assets/textures/` | The tiling SVG turbulence the rusted chrome is built from. |
 
-`CardSlots.tsx` carries `SHOW_GUIDES` and `TokenSlots.tsx` carries `SHOW_TOKEN_GUIDES`. Either draws labelled dashed outlines
+`cardSlots.ts` carries `SHOW_GUIDES` and `TokenSlots.tsx` carries `SHOW_TOKEN_GUIDES`. Either draws labelled dashed outlines
 over every box — turn it on while tuning placement, off to see the real face.
